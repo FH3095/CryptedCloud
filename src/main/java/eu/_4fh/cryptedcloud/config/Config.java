@@ -9,6 +9,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import javax.annotation.Nonnull;
@@ -41,6 +44,10 @@ public class Config {
 			this.googleConfig = googleConfig;
 		}
 
+		public void setSyncedFolders(final @Nonnull List<String> syncedFolders) {
+			this.syncedFolders = syncedFolders;
+		}
+
 		public void setSftpConfig(final @Nonnull SftpConfig sftpConfig) {
 			this.sftpConfig = sftpConfig;
 		}
@@ -54,6 +61,7 @@ public class Config {
 	protected String configDir;
 	protected String tempDir;
 	protected boolean allowWeakNameEncryptionKey;
+	protected List<String> syncedFolders;
 	protected GoogleConfig googleConfig;
 	protected SftpConfig sftpConfig;
 
@@ -62,6 +70,7 @@ public class Config {
 		configDir = System.getProperty("user.home") + "/Desktop/CryptedCloud";
 		tempDir = System.getProperty("java.io.tmpdir");
 		allowWeakNameEncryptionKey = true;
+		syncedFolders = new LinkedList<String>();
 		googleConfig = new GoogleConfig();
 		sftpConfig = new SftpConfig();
 	}
@@ -118,6 +127,11 @@ public class Config {
 		configDir = in.readUTF();
 		tempDir = in.readUTF();
 		allowWeakNameEncryptionKey = in.readBoolean();
+		syncedFolders.clear();
+		int numFolders = in.readInt();
+		for (int i = 0; i < numFolders; ++i) {
+			syncedFolders.add(in.readUTF());
+		}
 	}
 
 	static public void writeAndReloadConfig(final @Nonnull WritableConfig newConfig) throws IOException {
@@ -130,6 +144,10 @@ public class Config {
 				out.writeUTF(newConfig.configDir);
 				out.writeUTF(newConfig.tempDir);
 				out.writeBoolean(newConfig.allowWeakNameEncryptionKey);
+				out.writeInt(newConfig.syncedFolders.size());
+				for (String folder : newConfig.syncedFolders) {
+					out.writeUTF(folder);
+				}
 				newConfig.googleConfig.writeToFile(out);
 				newConfig.sftpConfig.writeToFile(out);
 			}
@@ -165,6 +183,10 @@ public class Config {
 
 	public boolean getAllowWeakNameEncryptionKey() {
 		return allowWeakNameEncryptionKey;
+	}
+
+	public List<String> getSyncedFolders() {
+		return Collections.unmodifiableList(syncedFolders);
 	}
 
 	public GoogleConfig getGoogleConfig() {
