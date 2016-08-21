@@ -14,9 +14,9 @@ public class SftpConfig implements SubConfig {
 	private String cryptedCloudRootFolderName;
 
 	public SftpConfig() {
-		hostName = "ssh.4fh.eu";
+		hostName = "example.com";
 		hostPort = 22;
-		userName = "fh_unsafe";
+		userName = "anonymous";
 		cryptedCloudRootFolderName = "CrytpedCloud";
 	}
 
