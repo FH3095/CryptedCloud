@@ -40,12 +40,12 @@ public class Config {
 			this.allowWeakNameEncryptionKey = allowWeakNameEncryptionKey;
 		}
 
-		public void setGoogleConfig(final @Nonnull GoogleConfig googleConfig) {
-			this.googleConfig = googleConfig;
+		public List<String> getSyncedFolders() {
+			return syncedFolders;
 		}
 
-		public void setSyncedFolders(final @Nonnull List<String> syncedFolders) {
-			this.syncedFolders = syncedFolders;
+		public void setGoogleConfig(final @Nonnull GoogleConfig googleConfig) {
+			this.googleConfig = googleConfig;
 		}
 
 		public void setSftpConfig(final @Nonnull SftpConfig sftpConfig) {
@@ -80,6 +80,7 @@ public class Config {
 		this.configDir = orig.configDir;
 		this.tempDir = orig.tempDir;
 		this.allowWeakNameEncryptionKey = orig.allowWeakNameEncryptionKey;
+		this.syncedFolders = new LinkedList<String>(orig.syncedFolders);
 		this.googleConfig = orig.googleConfig.clone();
 		this.sftpConfig = orig.sftpConfig.clone();
 	}

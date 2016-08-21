@@ -192,7 +192,8 @@ public class MainWindow extends javax.swing.JFrame {
 
 	private void writeSyncedFoldersToConfig(final @Nonnull List<String> newSyncedFolders) {
 		Config.WritableConfig newConfig = Config.getInstance().getWritableConfig();
-		newConfig.setSyncedFolders(newSyncedFolders);
+		newConfig.getSyncedFolders().clear();
+		newConfig.getSyncedFolders().addAll(newSyncedFolders);
 		try {
 			Config.writeAndReloadConfig(newConfig);
 		} catch (IOException e) {
