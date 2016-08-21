@@ -7,14 +7,13 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import org._4fh.cryptedcloud.test.TestUtils;
 import org.abstractj.kalium.crypto.Random;
 import org.abstractj.kalium.encoders.Encoder;
 import org.abstractj.kalium.keys.KeyPair;
 import org.abstractj.kalium.keys.PrivateKey;
-
-import com.google.common.base.Charsets;
 
 import eu._4fh.cryptedcloud.crypt.FileDecrypter;
 import eu._4fh.cryptedcloud.crypt.FileEncrypter;
@@ -112,7 +111,7 @@ public class CryptTestUtils {
 			byte[] fileContent = new byte[1024 * 1024];
 			int read = Util.readAsMuchFileAsPossible(in, fileContent);
 			byte[] keyRaw = privateKey.toBytes();
-			byte[] keyHex = Encoder.HEX.encode(keyRaw).getBytes(Charsets.US_ASCII);
+			byte[] keyHex = Encoder.HEX.encode(keyRaw).getBytes(StandardCharsets.US_ASCII);
 			for (int i = 0; i < (read - keyRaw.length) && i < (read - keyHex.length); ++i) {
 				boolean rawMatches = true;
 				boolean hexMatches = true;
