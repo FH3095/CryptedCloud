@@ -1,4 +1,4 @@
-package org._4fh.cryptedcloud.test.crypt;
+package eu._4fh.cryptedcloud.test.crypt;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

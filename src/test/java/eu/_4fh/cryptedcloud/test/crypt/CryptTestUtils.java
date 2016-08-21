@@ -1,4 +1,4 @@
-package org._4fh.cryptedcloud.test.crypt;
+package eu._4fh.cryptedcloud.test.crypt;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import org._4fh.cryptedcloud.test.TestUtils;
 import org.abstractj.kalium.crypto.Random;
 import org.abstractj.kalium.encoders.Encoder;
 import org.abstractj.kalium.keys.KeyPair;
@@ -17,6 +16,7 @@ import org.abstractj.kalium.keys.PrivateKey;
 
 import eu._4fh.cryptedcloud.crypt.FileDecrypter;
 import eu._4fh.cryptedcloud.crypt.FileEncrypter;
+import eu._4fh.cryptedcloud.test.TestUtils;
 import eu._4fh.cryptedcloud.util.Util;
 
 public class CryptTestUtils {

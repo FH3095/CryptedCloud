@@ -1,4 +1,4 @@
-package org._4fh.cryptedcloud.test.crypt;
+package eu._4fh.cryptedcloud.test.crypt;
 import java.util.Arrays;
 
 import org.abstractj.kalium.crypto.Random;
