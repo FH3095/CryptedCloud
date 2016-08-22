@@ -1,6 +1,8 @@
 package eu._4fh.cryptedcloud.cloud.sftp;
 
-import java.io.BufferedOutputStream;
+// Disabled for now. Also removed sshj4 and slf4j-jdk14 from pom.xml
+
+/*import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -113,4 +115,4 @@ public class SftpCloud extends AbstractCloudService {
 			// Ignore
 		}
 	}
-}
+}*/
