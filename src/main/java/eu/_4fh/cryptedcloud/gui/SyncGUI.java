@@ -56,7 +56,7 @@ public class SyncGUI {
 		}
 		ArrayList<File> syncFolders = new ArrayList<File>(this.syncFolders.size());
 		for (int i = 0; i < this.syncFolders.size(); ++i) {
-			File folder = new File(this.syncFolders.get(i));
+			File folder = new File(this.syncFolders.get(i)).getAbsoluteFile();
 			if (!folder.exists() || !folder.isDirectory()) {
 				log.info(() -> "Cant sync folder \"" + folder.getAbsolutePath()
 						+ "\" because it either doesnt exists or is not a folder!");
