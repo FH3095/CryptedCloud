@@ -65,7 +65,7 @@ public class SyncUploader {
 		// Wait for sync to finish
 		msgStream.println("All files queued for sync.");
 		this.executorService.shutdown();
-		while (this.executorService.isTerminated()) {
+		while (!this.executorService.isTerminated()) {
 			try {
 				Thread.sleep(TimeUnit.SECONDS.toMillis(1));
 			} catch (InterruptedException e) {
