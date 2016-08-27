@@ -1,7 +1,10 @@
 package eu._4fh.cryptedcloud.sync;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.HashSet;
@@ -65,6 +68,7 @@ public class SyncUploader {
 
 	@SuppressWarnings("null")
 	private boolean syncFolder(final @NonNull File folder, final @NonNull CloudFolder cloudFolder) {
+		// TODO Use threads with executor-service to speed up encryption
 		boolean successfullSync = true;
 		Set<String> syncedFolders = new HashSet<String>();
 		Set<String> syncedFiles = new HashSet<String>();
@@ -93,16 +97,25 @@ public class SyncUploader {
 					if (!cloudFolder.getFiles().containsKey(localFileOrFolder.getName())) {
 						CloudFile cloudFile = cloudFolder.createFile(localFileOrFolder.getName());
 						try (OutputStream out = cloudFile.getOutputStream()) {
+							new DataOutputStream(out)
+									.writeLong(TimeUnit.MILLISECONDS.toSeconds(localFileOrFolder.lastModified()));
 							Util.writeFileToStream(localFileOrFolder, out);
 						}
 						log.finer(() -> "Created new file " + localFileOrFolder.getName() + " for "
 								+ localFileOrFolder.getAbsolutePath());
 						msgStream.println("Uploaded new file: \"" + localFileOrFolder.getAbsolutePath() + "\".");
 					} else {
-						if (fileNeedsUpdate(localFileOrFolder,
-								cloudFolder.getFiles().get(localFileOrFolder.getName()))) {
+						boolean fileNeedsUpdate;
+						try (InputStream in = cloudFolder.getFiles().get(localFileOrFolder.getName())
+								.getInputStream()) {
+							fileNeedsUpdate = fileNeedsUpdate(localFileOrFolder, in);
+						}
+						if (fileNeedsUpdate) {
 							try (OutputStream out = cloudFolder.getFiles().get(localFileOrFolder.getName())
 									.getOutputStream()) {
+								new DataOutputStream(out)
+										.writeLong(TimeUnit.MILLISECONDS.toSeconds(localFileOrFolder.lastModified()));
+								out.flush();
 								Util.writeFileToStream(localFileOrFolder, out);
 							}
 							log.finer(() -> "Synced file " + localFileOrFolder.getName() + " to "
@@ -157,15 +170,13 @@ public class SyncUploader {
 		return successfullSync;
 	}
 
-	private boolean fileNeedsUpdate(final @NonNull File localFile, final @NonNull CloudFile cloudFile)
-			throws IOException {
+	private boolean fileNeedsUpdate(final @NonNull File localFile, final @NonNull InputStream in) throws IOException {
 		long localLastModified = TimeUnit.MILLISECONDS.toSeconds(localFile.lastModified());
-		long remoteLastModified = cloudFile.getLastModification();
+		long remoteLastModified = new DataInputStream(in).readLong();
 		log.finest(() -> "Comparing file timestamps: " + localLastModified
 				+ (localLastModified == remoteLastModified ? " = "
 						: (localLastModified < remoteLastModified ? " < " : " > "))
-				+ remoteLastModified + " for \'" + localFile.getAbsolutePath() + "\' and \'" + cloudFile.getFileName()
-				+ "\'.");
+				+ remoteLastModified + " for \'" + localFile.getAbsolutePath() + "\'.");
 		if (localLastModified > remoteLastModified) {
 			return true;
 		} else {

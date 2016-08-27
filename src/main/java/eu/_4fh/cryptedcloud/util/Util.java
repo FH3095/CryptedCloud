@@ -147,7 +147,9 @@ public class Util {
 		Files.walkFileTree(localFile.toPath(), new SimpleFileVisitor<Path>() {
 			@Override
 			public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-				Files.delete(file);
+				if (!file.toFile().delete()) {
+					file.toFile().deleteOnExit();
+				}
 				return FileVisitResult.CONTINUE;
 			}
 
@@ -165,7 +167,9 @@ public class Util {
 			public FileVisitResult postVisitDirectory(final Path dir, final IOException e) throws IOException {
 				if (e != null)
 					return handleException(e);
-				Files.delete(dir);
+				if (!dir.toFile().delete()) {
+					dir.toFile().deleteOnExit();
+				}
 				return FileVisitResult.CONTINUE;
 			}
 		});
@@ -198,6 +202,19 @@ public class Util {
 				}
 				out.write(buff, 0, read);
 			}
+		}
+	}
+
+	public static void copyStreamToStream(final @NonNull InputStream in, final @NonNull OutputStream out)
+			throws IOException {
+		byte[] buff = new byte[FILE_COPY_STEP_SIZE];
+		int read;
+		while (true) {
+			read = in.read(buff);
+			if (read < 0) {
+				break;
+			}
+			out.write(buff, 0, read);
 		}
 	}
 

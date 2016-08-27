@@ -12,6 +12,4 @@ public interface CloudFile {
 	public @NonNull OutputStream getOutputStream() throws IOException;
 
 	public @NonNull InputStream getInputStream() throws IOException;
-
-	public long getLastModification() throws IOException;
 }

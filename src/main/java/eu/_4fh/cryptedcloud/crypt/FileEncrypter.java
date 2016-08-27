@@ -92,6 +92,10 @@ public class FileEncrypter extends FilterOutputStream {
 
 	@Override
 	public void write(int b) throws IOException {
+		if (b < Byte.MIN_VALUE || b > Byte.MAX_VALUE) {
+			throw new IllegalArgumentException(
+					"b is " + b + " but must be must be " + Byte.MIN_VALUE + " <= b <= " + Byte.MAX_VALUE);
+		}
 		buff[writtenBytes] = (byte) b;
 		writtenBytes++;
 		if (writtenBytes >= chunkSize) {

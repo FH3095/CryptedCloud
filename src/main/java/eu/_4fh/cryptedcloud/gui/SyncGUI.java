@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
@@ -14,6 +15,8 @@ import javax.swing.DefaultListModel;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
 
+import org.abstractj.kalium.keys.KeyPair;
+import org.abstractj.kalium.keys.PublicKey;
 import org.eclipse.jdt.annotation.NonNull;
 
 import eu._4fh.cryptedcloud.config.Config;
@@ -67,10 +70,14 @@ public class SyncGUI {
 			@Override
 			public void run() {
 				try {
+					@NonNull
+					LinkedList<PublicKey> publicKeys = new LinkedList<PublicKey>(
+							KeyStore.getInstance().getPublicKeys().values());
+					KeyStore.getInstance().getPrivateKeys().values()
+							.forEach((KeyPair keyPair) -> publicKeys.add(keyPair.getPublicKey()));
 					CloudService cloudService = new EncryptedService(
 							new RawService(Config.getInstance().getTargetDir()),
-							Util.checkNonNull(KeyStore.getInstance().getPrivateKeys().values()),
-							Util.checkNonNull(KeyStore.getInstance().getPublicKeys().values()));
+							Util.checkNonNull(KeyStore.getInstance().getPrivateKeys().values()), publicKeys);
 
 					if (upload) {
 						if (!new SyncUploader(outputStream, syncFolders, cloudService.getRootFolder(), cloudService)

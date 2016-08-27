@@ -70,11 +70,11 @@ public class Config {
 	private Config() {
 		fileChunkSize = 100 * 1024 * 1024;
 		configDir = System.getProperty("user.home") + "/Desktop/CryptedCloud";
-		tempDir = System.getProperty("java.io.tmpdir") + ""; // + "" to force a npe when getProperty returns null
-		allowWeakNameEncryptionKey = true;
+		tempDir = Util.checkNonNull(System.getProperty("java.io.tmpdir"));
+		allowWeakNameEncryptionKey = false;
 		syncedFolders = new LinkedList<String>();
 		targetDir = System.getProperty("user.home") + "/Desktop/CryptedCloud";
-		numThreads = 4;
+		numThreads = 10;
 	}
 
 	private Config(final @NonNull Config orig) {
@@ -99,12 +99,16 @@ public class Config {
 			}
 			try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(CONFIG_FILE)))) {
 				while (true) {
-					int version;
+					String module;
 					try {
-						version = in.readInt();
+						module = in.readUTF();
 					} catch (EOFException e) {
 						break;
 					}
+					if (!module.equals("main")) {
+						throw new UnsupportedOperationException("Module " + module + " unknown!");
+					}
+					int version = in.readInt();
 					switch (version) {
 					case 1:
 						instance.readV1(in);

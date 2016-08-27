@@ -93,7 +93,11 @@ public class FileDecrypter extends InputStream {
 			}
 		}
 		readBytes++;
-		return buff[readBytes - 1];
+		int result = 0xFF & buff[readBytes - 1]; // This writes the binary represantation of the byte to the int
+		if (result < 0 || result > 255) {
+			throw new RuntimeException("Try to read byte, but return value is " + result + " which is not valid!");
+		}
+		return result;
 	}
 
 	private boolean readNextChunk() throws IOException {
@@ -125,5 +129,10 @@ public class FileDecrypter extends InputStream {
 			return 0;
 		}
 		return buff.length - readBytes;
+	}
+
+	@Override
+	public void close() throws IOException {
+		in.close();
 	}
 }

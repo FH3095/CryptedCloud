@@ -34,7 +34,7 @@ public class EncryptedFile implements CloudFile {
 	@Override
 	public @NonNull OutputStream getOutputStream() throws IOException {
 		OutputStream out = new FileEncrypter(file.getOutputStream(), service.getPublicKeys());
-		if (service.doCompress) {
+		if (service.getDoCompress()) {
 			out = new GZIPOutputStream(out);
 		}
 		return out;
@@ -43,14 +43,9 @@ public class EncryptedFile implements CloudFile {
 	@Override
 	public @NonNull InputStream getInputStream() throws IOException {
 		InputStream in = new FileDecrypter(file.getInputStream(), service.getPrivateKeys());
-		if (service.doCompress) {
+		if (service.getDoCompress()) {
 			in = new GZIPInputStream(in);
 		}
 		return in;
-	}
-
-	@Override
-	public long getLastModification() throws IOException {
-		return file.getLastModification();
 	}
 }

@@ -1,7 +1,9 @@
 package eu._4fh.cryptedcloud.sync;
 
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -82,6 +84,7 @@ public class SyncDownloader {
 	}
 
 	private boolean syncFolder(final @NonNull CloudFolder cloudFolder, final @NonNull File folder) {
+		// TODO Use threads with executor-service to speed up encryption
 		boolean successfullSync = true;
 
 		for (Map.Entry<String, CloudFolder> cloudFolderEntry : cloudFolder.getSubFolders().entrySet()) {
@@ -137,14 +140,16 @@ public class SyncDownloader {
 								"Deleted local \"" + localFile.getAbsolutePath() + "\" to create a file instead.");
 					}
 				}
-				if (fileNeedsUpdate(localFile, Util.checkNonNull(cloudFileEntry.getValue()))) {
-					Util.writeStreamToFile(cloudFileEntry.getValue().getInputStream(), localFile);
-					log.info(() -> "Downloaded file \"" + cloudFileEntry.getKey() + "\" to \""
-							+ localFile.getAbsolutePath() + "\"");
-					msgStream.println("Downloaded file " + localFile.getAbsolutePath());
-				} else {
-					log.finer(() -> "File \"" + cloudFileEntry.getKey() + "\" already consistent with \""
-							+ localFile.getAbsolutePath() + "\"");
+				try (InputStream in = cloudFileEntry.getValue().getInputStream()) {
+					if (fileNeedsUpdate(localFile, in)) {
+						Util.writeStreamToFile(in, localFile);
+						log.info(() -> "Downloaded file \"" + cloudFileEntry.getKey() + "\" to \""
+								+ localFile.getAbsolutePath() + "\"");
+						msgStream.println("Downloaded file " + localFile.getAbsolutePath());
+					} else {
+						log.finer(() -> "File \"" + cloudFileEntry.getKey() + "\" already consistent with \""
+								+ localFile.getAbsolutePath() + "\"");
+					}
 				}
 			} catch (IOException e) {
 				log.log(Level.SEVERE, "Cant download file \"" + cloudFileEntry.getKey() + "\" to \""
@@ -157,15 +162,13 @@ public class SyncDownloader {
 		return successfullSync;
 	}
 
-	private boolean fileNeedsUpdate(final @NonNull File localFile, final @NonNull CloudFile cloudFile)
-			throws IOException {
+	private boolean fileNeedsUpdate(final @NonNull File localFile, final @NonNull InputStream in) throws IOException {
 		long localLastModified = TimeUnit.MILLISECONDS.toSeconds(localFile.lastModified());
-		long remoteLastModified = cloudFile.getLastModification();
+		long remoteLastModified = new DataInputStream(in).readLong();
 		log.finest(() -> "Comparing file timestamps: " + localLastModified
 				+ (localLastModified == remoteLastModified ? " = "
 						: (localLastModified < remoteLastModified ? " < " : " > "))
-				+ remoteLastModified + " for \'" + localFile.getAbsolutePath() + "\' and \'" + cloudFile.getFileName()
-				+ "\'.");
+				+ remoteLastModified + " for \'" + localFile.getAbsolutePath() + "\'.");
 		if (remoteLastModified > localLastModified) {
 			return true;
 		} else {

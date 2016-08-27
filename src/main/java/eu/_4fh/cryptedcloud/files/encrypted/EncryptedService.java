@@ -16,7 +16,7 @@ import eu._4fh.cryptedcloud.util.Util;
 public class EncryptedService implements CloudService {
 	private static final @NonNull String ENCRYPTED_FOLDER_NAME = "EncFolder";
 	private static final @NonNull String NAME_ENCRYPTER_DATABASE_FILENAME = "FileNameEncrypter.keystore";
-	final boolean doCompress = true;
+	private boolean doCompress = true;
 	private final @NonNull CloudService service;
 	private final @NonNull FileNameEncrypter nameEncrypter;
 	private final @NonNull EncryptedFolder rootFolder;
@@ -88,5 +88,9 @@ public class EncryptedService implements CloudService {
 	@NonNull
 	Collection<KeyPair> getPrivateKeys() {
 		return privateKeys;
+	}
+
+	boolean getDoCompress() {
+		return doCompress;
 	}
 }

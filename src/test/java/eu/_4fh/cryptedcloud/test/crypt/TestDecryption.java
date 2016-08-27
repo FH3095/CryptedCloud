@@ -3,6 +3,7 @@ package eu._4fh.cryptedcloud.test.crypt;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -91,6 +92,42 @@ public class TestDecryption {
 		assertTrue("Decrypted2!=Encrypted",
 				CryptTestUtils.compareFiles(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_input.txt"),
 						new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_decrypted2.txt")));
+	}
+
+	@Test
+	public void testBinaryEncryptionByStep() throws IOException {
+		File inputFile = new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_input.txt");
+		CryptTestUtils.createFile(inputFile, 1);
+		try (OutputStream out = new BufferedOutputStream(new FileOutputStream(inputFile))) {
+			for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; ++i) {
+				out.write(i);
+			}
+		}
+		KeyPair keyPair = new KeyPair();
+		CryptTestUtils.encryptFile(CryptTestUtils.NORMAL_FILE_PREFIX, keyPair, new Random());
+		CryptTestUtils.decryptFile(CryptTestUtils.NORMAL_FILE_PREFIX, keyPair);
+		assertFalse("Key in File", CryptTestUtils.testFileContainsUnencryptedKey(CryptTestUtils.NORMAL_FILE_PREFIX,
+				keyPair.getPrivateKey()));
+		try (@SuppressWarnings("null")
+		InputStream fis = new FileDecrypter(
+				new BufferedInputStream(
+						new FileInputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_encrypted.txt"))),
+				Collections.singleton(keyPair));
+				OutputStream out = new BufferedOutputStream(
+						new FileOutputStream(CryptTestUtils.NORMAL_FILE_PREFIX + "_decrypted.txt"));) {
+			byte expectedByte = Byte.MIN_VALUE;
+			for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; ++i) {
+				final int byteValue = fis.read();
+				final int expected = expectedByte & 0xFF;
+				assertTrue("Exptected " + expected + " but got " + byteValue, expected == byteValue);
+				out.write(byteValue);
+				expectedByte++;
+			}
+		}
+		assertTrue("Decrypted!=Encrypted",
+				CryptTestUtils.compareFiles(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_input.txt"),
+						new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_decrypted.txt")));
+
 	}
 
 	@After
