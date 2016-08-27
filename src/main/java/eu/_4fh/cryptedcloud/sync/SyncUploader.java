@@ -31,7 +31,6 @@ public class SyncUploader {
 	private final CloudFolder cloudRootFolder;
 	private final CloudService cloud;
 	private final PrintStream msgStream;
-	private ExecutorService executorService;
 
 	public SyncUploader(final @NonNull PrintStream msgStream, final @NonNull List<File> syncFolderList,
 			final @NonNull CloudFolder cloudRootFolder, final @NonNull CloudService cloud) {
@@ -42,7 +41,6 @@ public class SyncUploader {
 	}
 
 	public boolean doSync() throws IOException {
-		this.executorService = Executors.newFixedThreadPool(Config.getInstance().getNumThreads());
 		boolean successfullSync = true;
 		Set<@NonNull String> syncedFolderNames = new HashSet<@NonNull String>();
 		msgStream.println("Starting Upload.");
@@ -75,6 +73,8 @@ public class SyncUploader {
 
 	@SuppressWarnings("null")
 	private boolean syncFolder(final @NonNull File folder, final @NonNull CloudFolder cloudFolder) {
+		final @NonNull ExecutorService executorService = Executors
+				.newFixedThreadPool(Config.getInstance().getNumThreads());
 		AtomicBoolean successfullSync = new AtomicBoolean(true);
 		Set<String> syncedFolders = new HashSet<String>();
 		Set<String> syncedFiles = new HashSet<String>();
@@ -102,7 +102,7 @@ public class SyncUploader {
 					syncedFiles.add(localFileOrFolder.getName());
 					if (!cloudFolder.getFiles().containsKey(localFileOrFolder.getName())) {
 						CloudFile cloudFile = cloudFolder.createFile(localFileOrFolder.getName());
-						enqueueFileUpdate(cloudFile, localFileOrFolder, successfullSync);
+						enqueueFileUpdate(executorService, cloudFile, localFileOrFolder, successfullSync);
 					} else {
 						boolean fileNeedsUpdate;
 						try (InputStream in = cloudFolder.getFiles().get(localFileOrFolder.getName())
@@ -110,7 +110,7 @@ public class SyncUploader {
 							fileNeedsUpdate = fileNeedsUpdate(localFileOrFolder, in);
 						}
 						if (fileNeedsUpdate) {
-							enqueueFileUpdate(cloudFolder.getFiles().get(localFileOrFolder.getName()),
+							enqueueFileUpdate(executorService, cloudFolder.getFiles().get(localFileOrFolder.getName()),
 									localFileOrFolder, successfullSync);
 						} else {
 							log.finer(() -> "File " + localFileOrFolder.getName() + " already consistent with "
@@ -161,8 +161,8 @@ public class SyncUploader {
 
 		// Wait for sync to finish
 		msgStream.println("Files for \"" + folder.getAbsolutePath() + "\" queued for sync.");
-		this.executorService.shutdown();
-		while (!this.executorService.isTerminated()) {
+		executorService.shutdown();
+		while (!executorService.isTerminated()) {
 			try {
 				Thread.sleep(TimeUnit.SECONDS.toMillis(1));
 			} catch (InterruptedException e) {
@@ -187,8 +187,8 @@ public class SyncUploader {
 		}
 	}
 
-	private void enqueueFileUpdate(final @NonNull CloudFile cloudFile, final @NonNull File localFileOrFolder,
-			final @NonNull AtomicBoolean successfullSync) {
+	private void enqueueFileUpdate(final @NonNull ExecutorService executorService, final @NonNull CloudFile cloudFile,
+			final @NonNull File localFileOrFolder, final @NonNull AtomicBoolean successfullSync) {
 		Runnable runnable = new Runnable() {
 			@Override
 			public void run() {
