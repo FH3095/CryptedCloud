@@ -61,14 +61,9 @@ public class SyncUploader {
 				successfullSync = false;
 			}
 		}
-		Set<@NonNull String> nonSyncedFolderNames = new HashSet<@NonNull String>(
-				cloudRootFolder.getSubFolders().keySet());
-		nonSyncedFolderNames.removeAll(syncedFolderNames);
-		for (String folder : nonSyncedFolderNames) {
-			cloudRootFolder.deleteFolder(folder);
-		}
-		cloud.finishSync(true, successfullSync);
-		msgStream.println("Upload finished.");
+
+		// Wait for sync to finish
+		msgStream.println("All files queued for sync.");
 		this.executorService.shutdown();
 		while (this.executorService.isTerminated()) {
 			try {
@@ -77,6 +72,15 @@ public class SyncUploader {
 				// Ignore
 			}
 		}
+
+		Set<@NonNull String> nonSyncedFolderNames = new HashSet<@NonNull String>(
+				cloudRootFolder.getSubFolders().keySet());
+		nonSyncedFolderNames.removeAll(syncedFolderNames);
+		for (String folder : nonSyncedFolderNames) {
+			cloudRootFolder.deleteFolder(folder);
+		}
+		cloud.finishSync(true, successfullSync);
+		msgStream.println("Upload finished.");
 		return successfullSync;
 	}
 
