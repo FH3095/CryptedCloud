@@ -7,7 +7,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 import org.abstractj.kalium.crypto.Random;
 import org.abstractj.kalium.encoders.Encoder;
@@ -74,22 +76,21 @@ public class CryptTestUtils {
 
 	public static void encryptFile(final String filePrefix, final KeyPair keyPair, final Random randomGenerator)
 			throws IOException {
-		try (FileInputStream fis = new FileInputStream(new File(filePrefix + "_input.txt"));
-				BufferedOutputStream fos = new BufferedOutputStream(
-						new FileOutputStream(new File(filePrefix + "_encrypted.txt")));) {
-			FileEncrypter encrypter = new FileEncrypter();
-			TestUtils.setField(encrypter, "random", randomGenerator);
-			encrypter.addKey(keyPair.getPublicKey());
-			encrypter.encryptFile(fis, fos);
+		try (@SuppressWarnings("null")
+		OutputStream fos = new FileEncrypter(
+				new BufferedOutputStream(new FileOutputStream(new File(filePrefix + "_encrypted.txt"))),
+				Collections.singleton(keyPair.getPublicKey()))) {
+			TestUtils.setField(fos, "random", randomGenerator);
+			Util.writeFileToStream(new File(filePrefix + "_input.txt"), fos);
 		}
 	}
 
 	public static void decryptFile(final String filePrefix, final KeyPair keyPair) throws IOException {
-		try (FileInputStream fis = new FileInputStream(new File(filePrefix + "_encrypted.txt"));
-				BufferedOutputStream fos = new BufferedOutputStream(
-						new FileOutputStream(new File(filePrefix + "_decrypted.txt")));) {
-			FileDecrypter decrypter = new FileDecrypter(keyPair);
-			decrypter.decryptFile(fis, fos);
+		try (@SuppressWarnings("null")
+		InputStream fis = new FileDecrypter(
+				new BufferedInputStream(new FileInputStream(new File(filePrefix + "_encrypted.txt"))),
+				Collections.singleton(keyPair))) {
+			Util.writeStreamToFile(fis, new File(filePrefix + "_decrypted.txt"));
 		}
 	}
 

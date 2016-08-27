@@ -11,6 +11,8 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import eu._4fh.cryptedcloud.crypt.KeyStore;
 import eu._4fh.cryptedcloud.util.Util;
 
@@ -107,7 +109,7 @@ public class ManageKeysWindow extends javax.swing.JFrame {
 		if (selected < 0 || selected >= keysListModel.size()) {
 			return;
 		}
-		final String keyName = keysListModel.get(selected);
+		final @NonNull String keyName = Util.checkNonNull(keysListModel.get(selected));
 		final int reallyDelete = JOptionPane.showConfirmDialog(this,
 				"Are you sure you want to delete the key " + keyName + "?", "Delete Key", JOptionPane.YES_NO_OPTION,
 				JOptionPane.QUESTION_MESSAGE);
@@ -122,7 +124,7 @@ public class ManageKeysWindow extends javax.swing.JFrame {
 		if (selected < 0 || selected >= keysListModel.size()) {
 			return;
 		}
-		final String keyName = keysListModel.get(selected);
+		final @NonNull String keyName = Util.checkNonNull(keysListModel.get(selected));
 		final boolean privateKey = JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(this, "Export private key?",
 				"Export Key", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 		String password = JOptionPane.showInputDialog(this, "Password for key? (Leave empty for no password.)",
@@ -136,7 +138,7 @@ public class ManageKeysWindow extends javax.swing.JFrame {
 		if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
 			return;
 		}
-		File file = fc.getSelectedFile();
+		final @NonNull File file = Util.checkNonNull(fc.getSelectedFile());
 		try {
 			KeyStore.getInstance().exportKey(privateKey, keyName, password, file);
 		} catch (IOException e) {
@@ -163,7 +165,7 @@ public class ManageKeysWindow extends javax.swing.JFrame {
 		if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
 			return;
 		}
-		final File file = fc.getSelectedFile();
+		final @NonNull File file = Util.checkNonNull(fc.getSelectedFile());
 		String password = JOptionPane.showInputDialog(this, "Password for the key? (Leave empty for no password.)",
 				"Password for key", JOptionPane.QUESTION_MESSAGE);
 		if (password != null && password.trim().equals("")) {

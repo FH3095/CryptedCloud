@@ -15,12 +15,10 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
-
 import org.abstractj.kalium.encoders.Encoder;
 import org.abstractj.kalium.keys.KeyPair;
-import org.abstractj.kalium.keys.PrivateKey;
 import org.abstractj.kalium.keys.PublicKey;
+import org.eclipse.jdt.annotation.NonNull;
 
 import eu._4fh.cryptedcloud.config.Config;
 import eu._4fh.cryptedcloud.util.Util;
@@ -32,11 +30,11 @@ public class KeyStore {
 	private static final String PUB_POSTFIX = ".pub";
 	private static KeyStore instance = null;
 	private final Map<String, PublicKey> publicKeys;
-	private final Map<String, PrivateKey> privateKeys;
+	private final Map<String, KeyPair> privateKeys;
 
 	private KeyStore() {
 		publicKeys = new HashMap<String, PublicKey>();
-		privateKeys = new HashMap<String, PrivateKey>();
+		privateKeys = new HashMap<String, KeyPair>();
 		File keyDir = new File(Config.getInstance().getConfigDir(), KEYSTORE_DIR);
 		if (!keyDir.exists()) {
 			keyDir.mkdir();
@@ -56,19 +54,22 @@ public class KeyStore {
 		return instance;
 	}
 
-	public @Nonnull Map<String, PublicKey> getPublicKeys() {
+	@SuppressWarnings("null")
+	public @NonNull Map<String, PublicKey> getPublicKeys() {
 		return Collections.unmodifiableMap(publicKeys);
 	}
 
-	public @Nonnull Map<String, PrivateKey> getPrivateKeys() {
+	@SuppressWarnings("null")
+	public @NonNull Map<String, KeyPair> getPrivateKeys() {
 		return Collections.unmodifiableMap(privateKeys);
 	}
 
 	public void writeToFile() throws IOException {
 		File folder = new File(Config.getInstance().getConfigDir(), KEYSTORE_DIR);
-		for (Map.Entry<String, PrivateKey> entry : privateKeys.entrySet()) {
+		for (Map.Entry<String, KeyPair> entry : privateKeys.entrySet()) {
 			try (OutputStream out = new BufferedOutputStream(new FileOutputStream(new File(folder, entry.getKey())))) {
-				out.write(Encoder.HEX.encode(entry.getValue().toBytes()).getBytes(StandardCharsets.UTF_8));
+				out.write(Encoder.HEX.encode(entry.getValue().getPrivateKey().toBytes())
+						.getBytes(StandardCharsets.UTF_8));
 			}
 		}
 		for (Map.Entry<String, PublicKey> entry : publicKeys.entrySet()) {
@@ -92,7 +93,7 @@ public class KeyStore {
 					publicKeys.put(file.getName(), pubKey);
 					log.finer(() -> "Read public key " + file.getAbsolutePath());
 				} else if (file.getAbsolutePath().endsWith(".key")) {
-					PrivateKey privKey = new PrivateKey(Encoder.HEX.decode(new String(key, StandardCharsets.UTF_8)));
+					KeyPair privKey = new KeyPair(Encoder.HEX.decode(new String(key, StandardCharsets.UTF_8)));
 					privateKeys.put(file.getName(), privKey);
 					log.finer(() -> "Read private key " + file.getAbsolutePath());
 				}
@@ -100,14 +101,14 @@ public class KeyStore {
 		}
 	}
 
-	public void createKey(@Nonnull String name) {
+	public void createKey(@NonNull String name) {
 		if (!name.endsWith(".key")) {
 			name = name + ".key";
 		}
-		privateKeys.put(name, new KeyPair().getPrivateKey());
+		privateKeys.put(name, new KeyPair());
 	}
 
-	public void importKey(final boolean privateKey, final String password, final @Nonnull File file)
+	public void importKey(final boolean privateKey, final String password, final @NonNull File file)
 			throws IOException {
 		byte[] keyEncoded = new byte[(int) file.length()];
 		try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
@@ -123,13 +124,13 @@ public class KeyStore {
 			fileName = fileName.substring(0, fileName.length() - 4);
 		}
 		if (privateKey) {
-			privateKeys.put(fileName + KEY_POSTFIX, new PrivateKey(key));
+			privateKeys.put(fileName + KEY_POSTFIX, new KeyPair(key));
 		} else {
 			publicKeys.put(fileName + PUB_POSTFIX, new PublicKey(key));
 		}
 	}
 
-	public void deleteKey(final @Nonnull String name) {
+	public void deleteKey(final @NonNull String name) {
 		privateKeys.remove(name);
 		publicKeys.remove(name);
 		File keyFile = new File(new File(Config.getInstance().getConfigDir(), KEYSTORE_DIR), name);
@@ -140,14 +141,14 @@ public class KeyStore {
 				+ "\" was deleted.");
 	}
 
-	public void exportKey(final boolean privateKey, final @Nonnull String name, final String password,
-			final @Nonnull File file) throws IOException {
+	public void exportKey(final boolean privateKey, final @NonNull String name, final String password,
+			final @NonNull File file) throws IOException {
 		byte[] key = null;
 		if (name.endsWith(".key")) {
 			if (privateKey) {
-				key = privateKeys.get(name).toBytes();
+				key = privateKeys.get(name).getPrivateKey().toBytes();
 			} else {
-				key = new KeyPair(privateKeys.get(name).toBytes()).getPublicKey().toBytes();
+				key = privateKeys.get(name).getPublicKey().toBytes();
 			}
 		} else if (name.endsWith(".pub")) {
 			key = publicKeys.get(name).toBytes();

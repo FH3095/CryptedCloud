@@ -22,6 +22,7 @@ public class TestPasswordBasedEncryption {
 			-117, 24, -102, 53, 126, -41, -52, -103, 105, 26, 57 };
 	private static final String password = "#]8q';S!ww}nL{1p@+g";
 
+	@SuppressWarnings("null")
 	@Test
 	public void testEncryptionAndDecryption() {
 		byte[] encrypted = new PasswordBasedEncryption().encrypt(password, rawData);

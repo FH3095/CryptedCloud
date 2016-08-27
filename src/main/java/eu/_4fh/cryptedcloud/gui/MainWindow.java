@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -16,6 +15,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 
 import org.abstractj.kalium.NaCl;
+import org.eclipse.jdt.annotation.NonNull;
 
 import eu._4fh.cryptedcloud.config.Config;
 import eu._4fh.cryptedcloud.util.LogConfigRefresh;
@@ -190,7 +190,7 @@ public class MainWindow extends javax.swing.JFrame {
 		recreateSyncedFoldersList();
 	}
 
-	private void writeSyncedFoldersToConfig(final @Nonnull List<String> newSyncedFolders) {
+	private void writeSyncedFoldersToConfig(final @NonNull List<String> newSyncedFolders) {
 		Config.WritableConfig newConfig = Config.getInstance().getWritableConfig();
 		newConfig.getSyncedFolders().clear();
 		newConfig.getSyncedFolders().addAll(newSyncedFolders);
@@ -211,11 +211,11 @@ public class MainWindow extends javax.swing.JFrame {
 	}
 
 	private void buttonStartUploadActionPerformed(ActionEvent evt) {
-		new SyncGUI(syncFolderListModel, textPaneSyncStatus).doSync(true);
+		new SyncGUI(Util.checkNonNull(syncFolderListModel), Util.checkNonNull(textPaneSyncStatus)).doSync(true);
 	}
 
 	private void buttonStartDownloadActionPerformed(ActionEvent evt) {
-		new SyncGUI(syncFolderListModel, textPaneSyncStatus).doSync(false);
+		new SyncGUI(Util.checkNonNull(syncFolderListModel), Util.checkNonNull(textPaneSyncStatus)).doSync(false);
 	}
 
 	private void menuItemManageConfigActionPerformed(ActionEvent evt) {

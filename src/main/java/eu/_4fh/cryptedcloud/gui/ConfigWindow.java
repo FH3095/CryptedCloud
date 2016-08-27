@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package eu._4fh.cryptedcloud.gui;
 
 import java.awt.event.MouseEvent;
@@ -22,7 +17,6 @@ import javax.swing.text.DefaultFormatterFactory;
 import javax.swing.text.NumberFormatter;
 
 import eu._4fh.cryptedcloud.config.Config;
-import eu._4fh.cryptedcloud.config.GoogleConfig;
 import eu._4fh.cryptedcloud.util.Util;
 
 public class ConfigWindow extends javax.swing.JFrame {
@@ -44,10 +38,10 @@ public class ConfigWindow extends javax.swing.JFrame {
 		stringTempDir = new javax.swing.JTextField();
 		labelAllowWeakNameKeys = new javax.swing.JLabel();
 		checkboxAllowWeakNameKeys = new javax.swing.JCheckBox();
-		labelGoogleUserName = new javax.swing.JLabel();
-		stringGoogleUserName = new javax.swing.JTextField();
-		labelGoogleCryptedCloudRootFolder = new javax.swing.JLabel();
-		stringGoogleCryptedCloudRootFolder = new javax.swing.JTextField();
+		labelTargetDir = new javax.swing.JLabel();
+		stringTargetDir = new javax.swing.JTextField();
+		labelNumThreads = new javax.swing.JLabel();
+		formattedNumThreads = new javax.swing.JFormattedTextField();
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 		setTitle("Config");
@@ -55,6 +49,7 @@ public class ConfigWindow extends javax.swing.JFrame {
 		getContentPane().setLayout(new java.awt.GridLayout(6, 2));
 
 		labelFileChunkSize.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+		labelFileChunkSize.setLabelFor(formattedFileChunkSize);
 		labelFileChunkSize.setText("File Chunk Size");
 		labelFileChunkSize.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 5));
 		getContentPane().add(labelFileChunkSize);
@@ -98,19 +93,30 @@ public class ConfigWindow extends javax.swing.JFrame {
 		checkboxAllowWeakNameKeys.setText("Allow Weak Name Encryption Keys");
 		getContentPane().add(checkboxAllowWeakNameKeys);
 
-		labelGoogleUserName.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-		labelGoogleUserName.setLabelFor(stringGoogleUserName);
-		labelGoogleUserName.setText("Google Username");
-		labelGoogleUserName.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 5));
-		getContentPane().add(labelGoogleUserName);
-		getContentPane().add(stringGoogleUserName);
+		labelTargetDir.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+		labelTargetDir.setLabelFor(stringTargetDir);
+		labelTargetDir.setText("Target Directory");
+		labelTargetDir.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 5));
+		getContentPane().add(labelTargetDir);
 
-		labelGoogleCryptedCloudRootFolder.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-		labelGoogleCryptedCloudRootFolder.setLabelFor(stringGoogleCryptedCloudRootFolder);
-		labelGoogleCryptedCloudRootFolder.setText("Google CryptedCloud Root Folder");
-		labelGoogleCryptedCloudRootFolder.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 5));
-		getContentPane().add(labelGoogleCryptedCloudRootFolder);
-		getContentPane().add(stringGoogleCryptedCloudRootFolder);
+		stringTargetDir.addMouseListener(new java.awt.event.MouseAdapter() {
+			public void mouseClicked(java.awt.event.MouseEvent evt) {
+				stringFieldDirectoryChooser(evt);
+			}
+		});
+		getContentPane().add(stringTargetDir);
+
+		labelNumThreads.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+		labelNumThreads.setText("Encryption Threads");
+		labelNumThreads.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 5));
+		getContentPane().add(labelNumThreads);
+
+		NumberFormatter formattedNumThreadsFormatter = new NumberFormatter(NumberFormat.getIntegerInstance());
+		formattedNumThreadsFormatter.setMinimum(new Integer(1));
+		formattedNumThreadsFormatter.setMaximum(65536);
+		formattedNumThreadsFormatter.setAllowsInvalid(false);
+		formattedNumThreads.setFormatterFactory(new DefaultFormatterFactory(formattedNumThreadsFormatter));
+		getContentPane().add(formattedNumThreads);
 
 		// Init Values from Config
 		Config config = Config.getInstance();
@@ -118,8 +124,8 @@ public class ConfigWindow extends javax.swing.JFrame {
 		stringConfigDir.setText(config.getConfigDir().getAbsolutePath());
 		stringTempDir.setText(config.getTempDir().getAbsolutePath());
 		checkboxAllowWeakNameKeys.setSelected(config.getAllowWeakNameEncryptionKey());
-		stringGoogleUserName.setText(config.getGoogleConfig().getUserEMail());
-		stringGoogleCryptedCloudRootFolder.setText(config.getGoogleConfig().getCrytpedCloudRootFolderName());
+		stringTargetDir.setText(config.getTargetDir().getAbsolutePath());
+		formattedNumThreads.setText(Integer.toString(config.getNumThreads()));
 
 		pack();
 	}
@@ -146,13 +152,14 @@ public class ConfigWindow extends javax.swing.JFrame {
 			synchronized (OnCloseWriteConfigWindowListener.class) {
 				try {
 					Config.WritableConfig config = Config.getInstance().getWritableConfig();
-					config.setGoogleConfig(new GoogleConfig(stringGoogleUserName.getText(),
-							stringGoogleCryptedCloudRootFolder.getText()));
 					config.setFileChunkSize(
 							NumberFormat.getIntegerInstance().parse(formattedFileChunkSize.getText()).intValue());
 					config.setConfigDir(new File(stringConfigDir.getText()));
 					config.setTempDir(new File(stringTempDir.getText()));
 					config.setAllowWeakNameEncryptionKey(checkboxAllowWeakNameKeys.isSelected());
+					config.setTargetDir(new File(stringTargetDir.getText()));
+					config.setNumThreads(
+							NumberFormat.getIntegerInstance().parse(formattedNumThreads.getText()).intValue());
 					Config.writeAndReloadConfig(config);
 				} catch (IOException | ParseException e) {
 					log.log(Level.SEVERE, "Cant write config: ", e);
@@ -189,14 +196,14 @@ public class ConfigWindow extends javax.swing.JFrame {
 
 	private javax.swing.JCheckBox checkboxAllowWeakNameKeys;
 	private javax.swing.JFormattedTextField formattedFileChunkSize;
+	private javax.swing.JFormattedTextField formattedNumThreads;
 	private javax.swing.JLabel labelAllowWeakNameKeys;
 	private javax.swing.JLabel labelConfigDir;
 	private javax.swing.JLabel labelFileChunkSize;
-	private javax.swing.JLabel labelGoogleCryptedCloudRootFolder;
-	private javax.swing.JLabel labelGoogleUserName;
+	private javax.swing.JLabel labelTargetDir;
 	private javax.swing.JLabel labelTempDir;
+	private javax.swing.JLabel labelNumThreads;
 	private javax.swing.JTextField stringConfigDir;
-	private javax.swing.JTextField stringGoogleCryptedCloudRootFolder;
-	private javax.swing.JTextField stringGoogleUserName;
 	private javax.swing.JTextField stringTempDir;
+	private javax.swing.JTextField stringTargetDir;
 }

@@ -8,9 +8,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Collections;
+import java.util.LinkedList;
 
 import org.abstractj.kalium.crypto.Random;
 import org.abstractj.kalium.keys.KeyPair;
+import org.abstractj.kalium.keys.PublicKey;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -18,11 +23,16 @@ import org.junit.Test;
 import eu._4fh.cryptedcloud.config.Config;
 import eu._4fh.cryptedcloud.crypt.FileDecrypter;
 import eu._4fh.cryptedcloud.crypt.FileEncrypter;
+import eu._4fh.cryptedcloud.util.Util;
 
 public class TestDecryption {
 	@BeforeClass
 	static public void readConfig() throws IOException {
-		Config.readConfig();
+		try {
+			Config.getInstance();
+		} catch (IllegalStateException e) {
+			Config.readConfig();
+		}
 	}
 
 	@Test
@@ -56,25 +66,24 @@ public class TestDecryption {
 		CryptTestUtils.createFile(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_input.txt"), 100 * 1000);
 		KeyPair key1 = new KeyPair();
 		KeyPair key2 = new KeyPair();
-		try (FileInputStream fis = new FileInputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_input.txt"));
-				BufferedOutputStream fos = new BufferedOutputStream(
-						new FileOutputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_encrypted.txt")));) {
-			FileEncrypter encrypter = new FileEncrypter();
-			encrypter.addKey(key1.getPublicKey());
-			encrypter.addKey(key2.getPublicKey());
-			assertTrue(encrypter.encryptFile(fis, fos));
+		LinkedList<PublicKey> keys = new LinkedList<PublicKey>();
+		keys.add(key1.getPublicKey());
+		keys.add(key2.getPublicKey());
+		try (OutputStream fos = new FileEncrypter(new BufferedOutputStream(
+				new FileOutputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_encrypted.txt"))), keys)) {
+			Util.writeFileToStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_input.txt"), fos);
 		}
-		try (FileInputStream fis = new FileInputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_encrypted.txt"));
-				BufferedOutputStream fos = new BufferedOutputStream(
-						new FileOutputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_decrypted1.txt")));) {
-			FileDecrypter decrypter = new FileDecrypter(key1);
-			assertTrue(decrypter.decryptFile(fis, fos));
+		try (@SuppressWarnings("null")
+		InputStream fis = new FileDecrypter(
+				new FileInputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_encrypted.txt")),
+				Collections.singleton(key1))) {
+			Util.writeStreamToFile(fis, new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_decrypted1.txt"));
 		}
-		try (FileInputStream fis = new FileInputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_encrypted.txt"));
-				BufferedOutputStream fos = new BufferedOutputStream(
-						new FileOutputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_decrypted2.txt")));) {
-			FileDecrypter decrypter = new FileDecrypter(key2);
-			assertTrue(decrypter.decryptFile(fis, fos));
+		try (@SuppressWarnings("null")
+		InputStream fis = new FileDecrypter(
+				new FileInputStream(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_encrypted.txt")),
+				Collections.singleton(key2))) {
+			Util.writeStreamToFile(fis, new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_decrypted2.txt"));
 		}
 		assertTrue("Decrypted1!=Encrypted",
 				CryptTestUtils.compareFiles(new File(CryptTestUtils.NORMAL_FILE_PREFIX + "_input.txt"),

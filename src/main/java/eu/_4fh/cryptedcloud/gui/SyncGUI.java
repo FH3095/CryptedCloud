@@ -6,26 +6,21 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
 import javax.swing.DefaultListModel;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
 
-import org.abstractj.kalium.keys.KeyPair;
-import org.abstractj.kalium.keys.PrivateKey;
-import org.abstractj.kalium.keys.PublicKey;
+import org.eclipse.jdt.annotation.NonNull;
 
-import eu._4fh.cryptedcloud.cloud.CloudService;
-import eu._4fh.cryptedcloud.cloud.encrypted.EncryptedCloud;
-import eu._4fh.cryptedcloud.cloud.google.GoogleCloud;
-import eu._4fh.cryptedcloud.crypt.FileDecrypter;
-import eu._4fh.cryptedcloud.crypt.FileEncrypter;
+import eu._4fh.cryptedcloud.config.Config;
 import eu._4fh.cryptedcloud.crypt.KeyStore;
+import eu._4fh.cryptedcloud.files.CloudService;
+import eu._4fh.cryptedcloud.files.encrypted.EncryptedService;
+import eu._4fh.cryptedcloud.files.raw.RawService;
 import eu._4fh.cryptedcloud.sync.SyncDownloader;
 import eu._4fh.cryptedcloud.sync.SyncUploader;
 import eu._4fh.cryptedcloud.util.Util;
@@ -38,7 +33,7 @@ public class SyncGUI {
 	private final AtomicBoolean syncRunning;
 	private final AtomicBoolean syncFinished;
 
-	public SyncGUI(final @Nonnull DefaultListModel<String> syncFolders, final @Nonnull JTextComponent output) {
+	public SyncGUI(final @NonNull DefaultListModel<String> syncFolders, final @NonNull JTextComponent output) {
 		this.syncFolders = syncFolders;
 		this.output = output;
 		outputBuffer = new ByteArrayOutputStream();
@@ -72,16 +67,10 @@ public class SyncGUI {
 			@Override
 			public void run() {
 				try {
-					FileEncrypter encrypter = new FileEncrypter();
-					FileDecrypter decrypter = new FileDecrypter();
-					for (PublicKey pubKey : KeyStore.getInstance().getPublicKeys().values()) {
-						encrypter.addKey(pubKey);
-					}
-					for (PrivateKey privKey : KeyStore.getInstance().getPrivateKeys().values()) {
-						encrypter.addKey(new KeyPair(privKey.toBytes()).getPublicKey());
-						decrypter.addKey(new KeyPair(privKey.toBytes()));
-					}
-					CloudService cloudService = new EncryptedCloud(new GoogleCloud(), encrypter, decrypter);
+					CloudService cloudService = new EncryptedService(
+							new RawService(Config.getInstance().getTargetDir()),
+							Util.checkNonNull(KeyStore.getInstance().getPrivateKeys().values()),
+							Util.checkNonNull(KeyStore.getInstance().getPublicKeys().values()));
 
 					if (upload) {
 						if (!new SyncUploader(outputStream, syncFolders, cloudService.getRootFolder(), cloudService)
@@ -94,14 +83,14 @@ public class SyncGUI {
 							outputStream.println("Error while sync. Please check log!");
 						}
 					}
-				} catch (GeneralSecurityException | IOException e) {
+				} catch (IOException e) {
 					outputStream.println("Cant sync: " + e.getMessage());
 				} finally {
 					syncFinished.set(true);
 				}
 			}
 		};
-		new WriteStreamToTextThread(outputBuffer, output).start();
+		new WriteStreamToTextThread(Util.checkNonNull(outputBuffer), Util.checkNonNull(output)).start();
 		ret.start();
 		return ret;
 	}
@@ -111,8 +100,8 @@ public class SyncGUI {
 		private final JTextComponent output;
 		private final ByteArrayOutputStream outputBuffer;
 
-		public WriteStreamToTextThread(final @Nonnull ByteArrayOutputStream outputBuffer,
-				final @Nonnull JTextComponent output) {
+		public WriteStreamToTextThread(final @NonNull ByteArrayOutputStream outputBuffer,
+				final @NonNull JTextComponent output) {
 			this.outputBuffer = outputBuffer;
 			this.output = output;
 		}

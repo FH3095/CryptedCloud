@@ -14,13 +14,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
+import org.eclipse.jdt.annotation.NonNull;
 
 import eu._4fh.cryptedcloud.util.Util;
 
 public class Config {
 	static public class WritableConfig extends Config {
-		private WritableConfig(final @Nonnull Config orig) {
+		private WritableConfig(final @NonNull Config orig) {
 			super(orig);
 		}
 
@@ -28,11 +28,13 @@ public class Config {
 			this.fileChunkSize = fileChunkSize;
 		}
 
-		public void setConfigDir(final @Nonnull File configDir) {
+		@SuppressWarnings("null")
+		public void setConfigDir(final @NonNull File configDir) {
 			this.configDir = configDir.getAbsolutePath();
 		}
 
-		public void setTempDir(final @Nonnull File tempDir) {
+		@SuppressWarnings("null")
+		public void setTempDir(final @NonNull File tempDir) {
 			this.tempDir = tempDir.getAbsolutePath();
 		}
 
@@ -44,45 +46,45 @@ public class Config {
 			return syncedFolders;
 		}
 
-		public void setGoogleConfig(final @Nonnull GoogleConfig googleConfig) {
-			this.googleConfig = googleConfig;
+		@SuppressWarnings("null")
+		public void setTargetDir(final @NonNull File targetDir) {
+			this.targetDir = targetDir.getAbsolutePath();
 		}
 
-		public void setSftpConfig(final @Nonnull SftpConfig sftpConfig) {
-			this.sftpConfig = sftpConfig;
+		public void setNumThreads(final int numThreads) {
+			this.numThreads = numThreads;
 		}
 	}
 
 	private static final Logger log = Util.getLogger();
 	private static final String CONFIG_FILE = "CryptedCloudSettings.dat";
-	static final String CONFIG_FILE_NAME = "main";
 	private static Config instance = null;
 	protected int fileChunkSize;
-	protected String configDir;
-	protected String tempDir;
+	protected @NonNull String configDir;
+	protected @NonNull String tempDir;
 	protected boolean allowWeakNameEncryptionKey;
-	protected List<String> syncedFolders;
-	protected GoogleConfig googleConfig;
-	protected SftpConfig sftpConfig;
+	protected @NonNull List<String> syncedFolders;
+	protected @NonNull String targetDir;
+	protected int numThreads;
 
 	private Config() {
 		fileChunkSize = 100 * 1024 * 1024;
 		configDir = System.getProperty("user.home") + "/Desktop/CryptedCloud";
-		tempDir = System.getProperty("java.io.tmpdir");
+		tempDir = System.getProperty("java.io.tmpdir") + ""; // + "" to force a npe when getProperty returns null
 		allowWeakNameEncryptionKey = true;
 		syncedFolders = new LinkedList<String>();
-		googleConfig = new GoogleConfig();
-		sftpConfig = new SftpConfig();
+		targetDir = System.getProperty("user.home") + "/Desktop/CryptedCloud";
+		numThreads = 4;
 	}
 
-	private Config(final @Nonnull Config orig) {
+	private Config(final @NonNull Config orig) {
 		this.fileChunkSize = orig.fileChunkSize;
 		this.configDir = orig.configDir;
 		this.tempDir = orig.tempDir;
 		this.allowWeakNameEncryptionKey = orig.allowWeakNameEncryptionKey;
 		this.syncedFolders = new LinkedList<String>(orig.syncedFolders);
-		this.googleConfig = orig.googleConfig.clone();
-		this.sftpConfig = orig.sftpConfig.clone();
+		this.targetDir = orig.targetDir;
+		this.numThreads = orig.numThreads;
 	}
 
 	static public void readConfig() throws IOException {
@@ -97,25 +99,18 @@ public class Config {
 			}
 			try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(CONFIG_FILE)))) {
 				while (true) {
-					String type;
+					int version;
 					try {
-						type = in.readUTF();
+						version = in.readInt();
 					} catch (EOFException e) {
 						break;
 					}
-					int version = in.readInt();
-					switch (type) {
-					case Config.CONFIG_FILE_NAME:
+					switch (version) {
+					case 1:
 						instance.readV1(in);
 						break;
-					case GoogleConfig.CONFIG_FILE_NAME:
-						instance.googleConfig.readFromFile(version, in);
-						break;
-					case SftpConfig.CONFIG_FILE_NAME:
-						instance.sftpConfig.readFromFile(version, in);
-						break;
 					default:
-						log.severe(() -> "Cant read config, got unexcepted type: " + type + " version " + version);
+						log.severe(() -> "Cant read config, got unexcepted version:" + version);
 						throw new RuntimeException("Cant read config, config-file seems to be invalid!");
 					}
 				}
@@ -123,7 +118,8 @@ public class Config {
 		}
 	}
 
-	private void readV1(final @Nonnull DataInputStream in) throws IOException {
+	@SuppressWarnings("null")
+	private void readV1(final @NonNull DataInputStream in) throws IOException {
 		fileChunkSize = in.readInt();
 		configDir = in.readUTF();
 		tempDir = in.readUTF();
@@ -133,9 +129,11 @@ public class Config {
 		for (int i = 0; i < numFolders; ++i) {
 			syncedFolders.add(in.readUTF());
 		}
+		targetDir = in.readUTF();
+		numThreads = in.readInt();
 	}
 
-	static public void writeAndReloadConfig(final @Nonnull WritableConfig newConfig) throws IOException {
+	static public void writeAndReloadConfig(final @NonNull WritableConfig newConfig) throws IOException {
 		synchronized (Config.class) {
 			try (DataOutputStream out = new DataOutputStream(
 					new BufferedOutputStream(new FileOutputStream(CONFIG_FILE)))) {
@@ -149,8 +147,8 @@ public class Config {
 				for (String folder : newConfig.syncedFolders) {
 					out.writeUTF(folder);
 				}
-				newConfig.googleConfig.writeToFile(out);
-				newConfig.sftpConfig.writeToFile(out);
+				out.writeUTF(newConfig.targetDir);
+				out.writeInt(newConfig.numThreads);
 			}
 			instance = null;
 			readConfig();
@@ -166,7 +164,7 @@ public class Config {
 		}
 	}
 
-	public @Nonnull WritableConfig getWritableConfig() {
+	public @NonNull WritableConfig getWritableConfig() {
 		return new WritableConfig(this);
 	}
 
@@ -174,11 +172,11 @@ public class Config {
 		return fileChunkSize;
 	}
 
-	public @Nonnull File getConfigDir() {
+	public @NonNull File getConfigDir() {
 		return new File(configDir);
 	}
 
-	public @Nonnull File getTempDir() {
+	public @NonNull File getTempDir() {
 		return new File(tempDir);
 	}
 
@@ -190,11 +188,11 @@ public class Config {
 		return Collections.unmodifiableList(syncedFolders);
 	}
 
-	public GoogleConfig getGoogleConfig() {
-		return googleConfig;
+	public @NonNull File getTargetDir() {
+		return new File(targetDir);
 	}
 
-	public SftpConfig getSftpConfig() {
-		return sftpConfig;
+	public int getNumThreads() {
+		return numThreads;
 	}
 }

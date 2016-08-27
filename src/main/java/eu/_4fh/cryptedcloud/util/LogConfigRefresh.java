@@ -7,7 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
+import org.eclipse.jdt.annotation.NonNull;
 
 public class LogConfigRefresh implements Runnable {
 	private static final Logger log = Util.getLogger();
@@ -19,7 +19,7 @@ public class LogConfigRefresh implements Runnable {
 		this("logging.properties");
 	}
 
-	public LogConfigRefresh(final @Nonnull String configFile) {
+	public LogConfigRefresh(final @NonNull String configFile) {
 		logConfigFile = new File(configFile);
 		System.setProperty("java.util.logging.config.file", logConfigFile.getAbsolutePath());
 		// In the beginning we want a log-message in every case

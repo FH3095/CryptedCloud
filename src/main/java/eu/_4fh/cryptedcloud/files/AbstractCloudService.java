@@ -1,11 +1,11 @@
-package eu._4fh.cryptedcloud.cloud;
+package eu._4fh.cryptedcloud.files;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.annotation.Nonnull;
+import org.eclipse.jdt.annotation.NonNull;
 
 import eu._4fh.cryptedcloud.util.Util.Pair;
 
@@ -22,9 +22,9 @@ public abstract class AbstractCloudService implements CloudService {
 		String getParentId(final Object fileOrFolder);
 	}
 
-	protected <FolderType extends CloudFolder> void constructTree(final @Nonnull Map<String, ? extends Object> files,
-			final @Nonnull FolderType rootFolder,
-			final @Nonnull TreeBuilderHelper<FolderType, ? extends CloudFile> treeBuilderHelper) {
+	protected <FolderType extends CloudFolder> void constructTree(final @NonNull Map<String, ? extends Object> files,
+			final @NonNull FolderType rootFolder,
+			final @NonNull TreeBuilderHelper<FolderType, ? extends CloudFile> treeBuilderHelper) {
 		Map<String, FolderType> newTreeFolders = new HashMap<String, FolderType>();
 		newTreeFolders.put(treeBuilderHelper.getFolderId(rootFolder), rootFolder);
 
@@ -53,8 +53,8 @@ public abstract class AbstractCloudService implements CloudService {
 	}
 
 	@Override
-	public @Nonnull Long getFreeSpace(boolean refresh) throws IOException {
-		Pair<Long, Long> usageAndLimit = getUsageAndLimit(refresh);
+	public @NonNull Long getFreeSpace() throws IOException {
+		Pair<Long, Long> usageAndLimit = getUsageAndLimit();
 		return usageAndLimit.value2 - usageAndLimit.value1;
 	}
 }

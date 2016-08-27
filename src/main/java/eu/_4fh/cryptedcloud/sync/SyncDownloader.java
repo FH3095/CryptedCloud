@@ -16,11 +16,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
+import org.eclipse.jdt.annotation.NonNull;
 
-import eu._4fh.cryptedcloud.cloud.CloudFile;
-import eu._4fh.cryptedcloud.cloud.CloudFolder;
-import eu._4fh.cryptedcloud.cloud.CloudService;
+import eu._4fh.cryptedcloud.files.CloudFile;
+import eu._4fh.cryptedcloud.files.CloudFolder;
+import eu._4fh.cryptedcloud.files.CloudService;
 import eu._4fh.cryptedcloud.util.Util;
 
 public class SyncDownloader {
@@ -30,8 +30,8 @@ public class SyncDownloader {
 	private final CloudService cloud;
 	private final PrintStream msgStream;
 
-	public SyncDownloader(final @Nonnull PrintStream msgStream, final @Nonnull List<File> syncFolderList,
-			final @Nonnull CloudFolder cloudRootFolder, final @Nonnull CloudService cloud) {
+	public SyncDownloader(final @NonNull PrintStream msgStream, final @NonNull List<File> syncFolderList,
+			final @NonNull CloudFolder cloudRootFolder, final @NonNull CloudService cloud) {
 		this.msgStream = msgStream;
 		this.syncFolderList = syncFolderList;
 		this.cloudRootFolder = cloudRootFolder;
@@ -49,7 +49,7 @@ public class SyncDownloader {
 			CloudFolder cloudFolder;
 			if (cloudRootFolder.getSubFolders().containsKey(folderName)) {
 				cloudFolder = cloudRootFolder.getSubFolders().get(folderName);
-				if (!syncFolder(cloudFolder, folder)) {
+				if (!syncFolder(Util.checkNonNull(cloudFolder), folder)) {
 					successfullSync = false;
 				}
 			} else {
@@ -81,7 +81,7 @@ public class SyncDownloader {
 		return successfullSync;
 	}
 
-	private boolean syncFolder(final @Nonnull CloudFolder cloudFolder, final @Nonnull File folder) {
+	private boolean syncFolder(final @NonNull CloudFolder cloudFolder, final @NonNull File folder) {
 		boolean successfullSync = true;
 
 		for (Map.Entry<String, CloudFolder> cloudFolderEntry : cloudFolder.getSubFolders().entrySet()) {
@@ -101,7 +101,7 @@ public class SyncDownloader {
 				}
 				msgStream.println("Created Folder \"" + localFolder.getAbsolutePath() + "\".");
 			}
-			syncFolder(cloudFolderEntry.getValue(), localFolder);
+			syncFolder(Util.checkNonNull(cloudFolderEntry.getValue()), localFolder);
 		}
 		for (Map.Entry<String, CloudFile> cloudFileEntry : cloudFolder.getFiles().entrySet()) {
 			File localFile = new File(folder, cloudFileEntry.getKey());
@@ -137,8 +137,8 @@ public class SyncDownloader {
 								"Deleted local \"" + localFile.getAbsolutePath() + "\" to create a file instead.");
 					}
 				}
-				if (fileNeedsUpdate(localFile, cloudFileEntry.getValue())) {
-					cloudFileEntry.getValue().downloadFile(localFile);
+				if (fileNeedsUpdate(localFile, Util.checkNonNull(cloudFileEntry.getValue()))) {
+					Util.writeStreamToFile(cloudFileEntry.getValue().getInputStream(), localFile);
 					log.info(() -> "Downloaded file \"" + cloudFileEntry.getKey() + "\" to \""
 							+ localFile.getAbsolutePath() + "\"");
 					msgStream.println("Downloaded file " + localFile.getAbsolutePath());
@@ -157,7 +157,7 @@ public class SyncDownloader {
 		return successfullSync;
 	}
 
-	private boolean fileNeedsUpdate(final @Nonnull File localFile, final @Nonnull CloudFile cloudFile)
+	private boolean fileNeedsUpdate(final @NonNull File localFile, final @NonNull CloudFile cloudFile)
 			throws IOException {
 		long localLastModified = TimeUnit.MILLISECONDS.toSeconds(localFile.lastModified());
 		long remoteLastModified = cloudFile.getLastModification();

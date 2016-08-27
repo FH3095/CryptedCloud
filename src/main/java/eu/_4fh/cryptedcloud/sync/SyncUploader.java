@@ -2,6 +2,7 @@ package eu._4fh.cryptedcloud.sync;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.List;
@@ -10,11 +11,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
+import org.eclipse.jdt.annotation.NonNull;
 
-import eu._4fh.cryptedcloud.cloud.CloudFile;
-import eu._4fh.cryptedcloud.cloud.CloudFolder;
-import eu._4fh.cryptedcloud.cloud.CloudService;
+import eu._4fh.cryptedcloud.files.CloudFile;
+import eu._4fh.cryptedcloud.files.CloudFolder;
+import eu._4fh.cryptedcloud.files.CloudService;
 import eu._4fh.cryptedcloud.util.Util;
 
 public class SyncUploader {
@@ -24,8 +25,8 @@ public class SyncUploader {
 	private final CloudService cloud;
 	private final PrintStream msgStream;
 
-	public SyncUploader(final @Nonnull PrintStream msgStream, final @Nonnull List<File> syncFolderList,
-			final @Nonnull CloudFolder cloudRootFolder, final @Nonnull CloudService cloud) {
+	public SyncUploader(final @NonNull PrintStream msgStream, final @NonNull List<File> syncFolderList,
+			final @NonNull CloudFolder cloudRootFolder, final @NonNull CloudService cloud) {
 		this.msgStream = msgStream;
 		this.syncFolderList = syncFolderList;
 		this.cloudRootFolder = cloudRootFolder;
@@ -34,11 +35,12 @@ public class SyncUploader {
 
 	public boolean doSync() throws IOException {
 		boolean successfullSync = true;
-		Set<String> syncedFolderNames = new HashSet<String>();
+		Set<@NonNull String> syncedFolderNames = new HashSet<@NonNull String>();
 		msgStream.println("Starting Upload.");
 		cloud.startSync(true);
 		for (File folder : syncFolderList) {
-			String folderName = folder.getAbsolutePath();
+			@SuppressWarnings("null")
+			final @NonNull String folderName = folder.getAbsolutePath();
 			syncedFolderNames.add(folderName);
 			CloudFolder cloudFolder;
 			if (cloudRootFolder.getSubFolders().containsKey(folderName)) {
@@ -46,11 +48,12 @@ public class SyncUploader {
 			} else {
 				cloudFolder = cloudRootFolder.createFolder(folderName);
 			}
-			if (!syncFolder(folder, cloudFolder)) {
+			if (!syncFolder(folder, Util.checkNonNull(cloudFolder))) {
 				successfullSync = false;
 			}
 		}
-		Set<String> nonSyncedFolderNames = new HashSet<String>(cloudRootFolder.getSubFolders().keySet());
+		Set<@NonNull String> nonSyncedFolderNames = new HashSet<@NonNull String>(
+				cloudRootFolder.getSubFolders().keySet());
 		nonSyncedFolderNames.removeAll(syncedFolderNames);
 		for (String folder : nonSyncedFolderNames) {
 			cloudRootFolder.deleteFolder(folder);
@@ -60,7 +63,8 @@ public class SyncUploader {
 		return successfullSync;
 	}
 
-	private boolean syncFolder(final @Nonnull File folder, final @Nonnull CloudFolder cloudFolder) {
+	@SuppressWarnings("null")
+	private boolean syncFolder(final @NonNull File folder, final @NonNull CloudFolder cloudFolder) {
 		boolean successfullSync = true;
 		Set<String> syncedFolders = new HashSet<String>();
 		Set<String> syncedFiles = new HashSet<String>();
@@ -87,14 +91,20 @@ public class SyncUploader {
 				} else if (localFileOrFolder.isFile()) {
 					syncedFiles.add(localFileOrFolder.getName());
 					if (!cloudFolder.getFiles().containsKey(localFileOrFolder.getName())) {
-						cloudFolder.createFile(localFileOrFolder.getName(), localFileOrFolder);
+						CloudFile cloudFile = cloudFolder.createFile(localFileOrFolder.getName());
+						try (OutputStream out = cloudFile.getOutputStream()) {
+							Util.writeFileToStream(localFileOrFolder, out);
+						}
 						log.finer(() -> "Created new file " + localFileOrFolder.getName() + " for "
 								+ localFileOrFolder.getAbsolutePath());
 						msgStream.println("Uploaded new file: \"" + localFileOrFolder.getAbsolutePath() + "\".");
 					} else {
 						if (fileNeedsUpdate(localFileOrFolder,
 								cloudFolder.getFiles().get(localFileOrFolder.getName()))) {
-							cloudFolder.getFiles().get(localFileOrFolder.getName()).updateFile(localFileOrFolder);
+							try (OutputStream out = cloudFolder.getFiles().get(localFileOrFolder.getName())
+									.getOutputStream()) {
+								Util.writeFileToStream(localFileOrFolder, out);
+							}
 							log.finer(() -> "Synced file " + localFileOrFolder.getName() + " to "
 									+ localFileOrFolder.getAbsolutePath());
 							msgStream.println("Reuploaded file: \"" + localFileOrFolder.getAbsolutePath() + "\".");
@@ -147,7 +157,7 @@ public class SyncUploader {
 		return successfullSync;
 	}
 
-	private boolean fileNeedsUpdate(final @Nonnull File localFile, final @Nonnull CloudFile cloudFile)
+	private boolean fileNeedsUpdate(final @NonNull File localFile, final @NonNull CloudFile cloudFile)
 			throws IOException {
 		long localLastModified = TimeUnit.MILLISECONDS.toSeconds(localFile.lastModified());
 		long remoteLastModified = cloudFile.getLastModification();

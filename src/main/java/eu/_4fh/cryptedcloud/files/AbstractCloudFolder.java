@@ -1,15 +1,16 @@
-package eu._4fh.cryptedcloud.cloud;
+package eu._4fh.cryptedcloud.files;
 
-import javax.annotation.Nonnull;
+import org.eclipse.jdt.annotation.NonNull;
 
 public abstract class AbstractCloudFolder implements CloudFolder {
-	public @Nonnull String toStringRecursive() {
+	@SuppressWarnings("null")
+	public @NonNull String toStringRecursive() {
 		StringBuffer buff = new StringBuffer();
 		toStringRecursive(0, buff);
 		return buff.toString().trim();
 	}
 
-	private void toStringRecursive(int level, StringBuffer buff) {
+	private void toStringRecursive(int level, final @NonNull StringBuffer buff) {
 		indentLine(level, buff);
 		buff.append(getFolderName());
 		level++;
@@ -22,7 +23,7 @@ public abstract class AbstractCloudFolder implements CloudFolder {
 		}
 	}
 
-	private void indentLine(int level, StringBuffer buff) {
+	private void indentLine(final int level, final @NonNull StringBuffer buff) {
 		buff.append('\n');
 		for (int i = 0; i < level * 2; ++i) {
 			buff.append(' ');

@@ -1,12 +1,7 @@
 package eu._4fh.cryptedcloud.crypt;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -14,7 +9,6 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.logging.Logger;
 
-import javax.annotation.Nonnull;
 import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -23,8 +17,10 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.DestroyFailedException;
 
 import org.cryptomator.siv.SivMode;
+import org.eclipse.jdt.annotation.NonNull;
 
 import eu._4fh.cryptedcloud.config.Config;
+import eu._4fh.cryptedcloud.files.CloudFile;
 import eu._4fh.cryptedcloud.util.Util;
 
 public class FileNameEncrypter {
@@ -32,7 +28,7 @@ public class FileNameEncrypter {
 	private static final int DEFAULT_KEY_SIZE = 256;
 	private static final String DEFAULT_KEY_ALGORITHM = "AES";
 	private boolean initialized;
-	private final @Nonnull SivMode sivMode;
+	private final @NonNull SivMode sivMode;
 	private String sivKeyAlgorithm;
 	private int sivKeySize;
 	private SecretKey sivCtrKey;
@@ -81,11 +77,11 @@ public class FileNameEncrypter {
 		initialized = true;
 	}
 
-	public synchronized void initializeFromFile(final @Nonnull File file) throws IOException {
+	public synchronized void initializeFromFile(final @NonNull CloudFile file) throws IOException {
 		if (initialized) {
 			throw new IllegalStateException("Cant re-initialize FileNameEncrypter!");
 		}
-		try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))) {
+		try (DataInputStream in = new DataInputStream(file.getInputStream())) {
 			int keyLength;
 			byte[] tmp;
 			sivKeyAlgorithm = in.readUTF();
@@ -94,8 +90,8 @@ public class FileNameEncrypter {
 				log.warning("The keys that were used to encrypt the file names was weak. The keysize was " + sivKeySize
 						+ ".");
 				if (!Config.getInstance().getAllowWeakNameEncryptionKey()) {
-					throw new RuntimeException("Tried to read weak file encryption key with " + sivKeySize + " from "
-							+ file.getAbsolutePath() + ", but Config doesn't allow this!");
+					throw new RuntimeException("Tried to read weak file encryption key with " + sivKeySize
+							+ ", but Config doesn't allow this!");
 				}
 			}
 
@@ -113,14 +109,14 @@ public class FileNameEncrypter {
 		}
 	}
 
-	public @Nonnull String encryptName(final @Nonnull String name) {
+	public @NonNull String encryptName(final @NonNull String name) {
 		checkInitialized();
 		byte[] clearFileName = name.getBytes(StandardCharsets.UTF_8);
 		byte[] encryptedFileName = sivMode.encrypt(sivCtrKey, sivMacKey, clearFileName);
-		return Base64.getUrlEncoder().encodeToString(encryptedFileName);
+		return Util.checkNonNull(Base64.getUrlEncoder().encodeToString(encryptedFileName));
 	}
 
-	public @Nonnull String decryptName(final @Nonnull String idStr) {
+	public @NonNull String decryptName(final @NonNull String idStr) {
 		checkInitialized();
 		try {
 			byte[] encryptedFileName = Base64.getUrlDecoder().decode(idStr);
@@ -131,9 +127,9 @@ public class FileNameEncrypter {
 		}
 	}
 
-	public void writeToFile(final @Nonnull File file) throws IOException {
+	public void writeToFile(final @NonNull CloudFile file) throws IOException {
 		checkInitialized();
-		try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
+		try (DataOutputStream out = new DataOutputStream(file.getOutputStream())) {
 			byte[] tmp;
 			out.writeUTF(sivKeyAlgorithm);
 			out.writeInt(sivKeySize);
@@ -148,7 +144,7 @@ public class FileNameEncrypter {
 		}
 	}
 
-	/*public synchronized void initializeFromFile(final @Nonnull File file) throws IOException {
+	/*public synchronized void initializeFromFile(final @NonNull File file) throws IOException {
 		if (initialized) {
 			throw new IllegalStateException("Cant re-initialize FileNameEncrypter!");
 		}
@@ -173,7 +169,7 @@ public class FileNameEncrypter {
 		}
 	}
 	
-	public @Nonnull String getIdForName(final @Nonnull String name) {
+	public @NonNull String getIdForName(final @NonNull String name) {
 		checkInitialized();
 		Integer id = nameToId.get(name);
 		if (id != null) {
@@ -182,7 +178,7 @@ public class FileNameEncrypter {
 		return Integer.toString(createIdForName(name), NAME_TO_NUMBER_RADIX);
 	}
 	
-	public @Nonnull String getNameForId(final @Nonnull String idStr) {
+	public @NonNull String getNameForId(final @NonNull String idStr) {
 		checkInitialized();
 		int id = Integer.parseInt(idStr, NAME_TO_NUMBER_RADIX);
 		if (idToName.size() <= id || idToName.get(id) == null) {
@@ -192,7 +188,7 @@ public class FileNameEncrypter {
 		return idToName.get(id);
 	}
 	
-	public void writeToFile(final @Nonnull File file) throws IOException {
+	public void writeToFile(final @NonNull File file) throws IOException {
 		checkInitialized();
 		try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
 			out.writeInt(idToName.size());
@@ -207,7 +203,7 @@ public class FileNameEncrypter {
 		}
 	}
 	
-	public void removeUnusedIds(final @Nonnull Set<String> usedIds) {
+	public void removeUnusedIds(final @NonNull Set<String> usedIds) {
 		checkInitialized();
 		Set<Integer> unusedIds = new HashSet<Integer>(nameToId.values());
 		for (final String idStr : usedIds) {
@@ -219,7 +215,7 @@ public class FileNameEncrypter {
 		}
 	}
 	
-	private int createIdForName(final @Nonnull String name) {
+	private int createIdForName(final @NonNull String name) {
 		int nextFreeName = reservedNames.nextClearBit(0);
 		reservedNames.set(nextFreeName);
 	
@@ -252,7 +248,7 @@ public class FileNameEncrypter {
 		return nextFreeName;
 	}
 	
-	private void removeName(final @Nonnull String name) {
+	private void removeName(final @NonNull String name) {
 		Integer id = nameToId.get(name);
 		if (id == null) {
 			throw new RuntimeException("No id exists for name " + name);
