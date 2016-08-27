@@ -102,7 +102,6 @@ public class SyncDownloader {
 					successfullSync = false;
 					continue;
 				}
-				msgStream.println("Created Folder \"" + localFolder.getAbsolutePath() + "\".");
 			}
 			syncFolder(Util.checkNonNull(cloudFolderEntry.getValue()), localFolder);
 		}
@@ -145,7 +144,6 @@ public class SyncDownloader {
 						Util.writeStreamToFile(in, localFile);
 						log.info(() -> "Downloaded file \"" + cloudFileEntry.getKey() + "\" to \""
 								+ localFile.getAbsolutePath() + "\"");
-						msgStream.println("Downloaded file " + localFile.getAbsolutePath());
 					} else {
 						log.finer(() -> "File \"" + cloudFileEntry.getKey() + "\" already consistent with \""
 								+ localFile.getAbsolutePath() + "\"");

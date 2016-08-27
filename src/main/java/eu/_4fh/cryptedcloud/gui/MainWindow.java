@@ -211,11 +211,22 @@ public class MainWindow extends javax.swing.JFrame {
 	}
 
 	private void buttonStartUploadActionPerformed(ActionEvent evt) {
-		new SyncGUI(Util.checkNonNull(syncFolderListModel), Util.checkNonNull(textPaneSyncStatus)).doSync(true);
+		new Thread() {
+			@Override
+			public void run() {
+				new SyncGUI(Util.checkNonNull(syncFolderListModel), Util.checkNonNull(textPaneSyncStatus)).doSync(true);
+			}
+		}.start();
 	}
 
 	private void buttonStartDownloadActionPerformed(ActionEvent evt) {
-		new SyncGUI(Util.checkNonNull(syncFolderListModel), Util.checkNonNull(textPaneSyncStatus)).doSync(false);
+		new Thread() {
+			@Override
+			public void run() {
+				new SyncGUI(Util.checkNonNull(syncFolderListModel), Util.checkNonNull(textPaneSyncStatus))
+						.doSync(false);
+			}
+		}.start();
 	}
 
 	private void menuItemManageConfigActionPerformed(ActionEvent evt) {

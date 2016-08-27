@@ -103,7 +103,6 @@ public class SyncUploader {
 						}
 						log.finer(() -> "Created new file " + localFileOrFolder.getName() + " for "
 								+ localFileOrFolder.getAbsolutePath());
-						msgStream.println("Uploaded new file: \"" + localFileOrFolder.getAbsolutePath() + "\".");
 					} else {
 						boolean fileNeedsUpdate;
 						try (InputStream in = cloudFolder.getFiles().get(localFileOrFolder.getName())
@@ -120,7 +119,6 @@ public class SyncUploader {
 							}
 							log.finer(() -> "Synced file " + localFileOrFolder.getName() + " to "
 									+ localFileOrFolder.getAbsolutePath());
-							msgStream.println("Reuploaded file: \"" + localFileOrFolder.getAbsolutePath() + "\".");
 						} else {
 							log.finer(() -> "File " + localFileOrFolder.getName() + " already consistent with "
 									+ localFileOrFolder.getAbsolutePath());
