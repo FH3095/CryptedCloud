@@ -10,12 +10,16 @@ import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.jdt.annotation.NonNull;
 
+import eu._4fh.cryptedcloud.config.Config;
 import eu._4fh.cryptedcloud.files.CloudFile;
 import eu._4fh.cryptedcloud.files.CloudFolder;
 import eu._4fh.cryptedcloud.files.CloudService;
@@ -27,6 +31,7 @@ public class SyncUploader {
 	private final CloudFolder cloudRootFolder;
 	private final CloudService cloud;
 	private final PrintStream msgStream;
+	private ExecutorService executorService;
 
 	public SyncUploader(final @NonNull PrintStream msgStream, final @NonNull List<File> syncFolderList,
 			final @NonNull CloudFolder cloudRootFolder, final @NonNull CloudService cloud) {
@@ -37,6 +42,7 @@ public class SyncUploader {
 	}
 
 	public boolean doSync() throws IOException {
+		this.executorService = Executors.newFixedThreadPool(Config.getInstance().getNumThreads());
 		boolean successfullSync = true;
 		Set<@NonNull String> syncedFolderNames = new HashSet<@NonNull String>();
 		msgStream.println("Starting Upload.");
@@ -63,13 +69,20 @@ public class SyncUploader {
 		}
 		cloud.finishSync(true, successfullSync);
 		msgStream.println("Upload finished.");
+		this.executorService.shutdown();
+		while (this.executorService.isTerminated()) {
+			try {
+				Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+			} catch (InterruptedException e) {
+				// Ignore
+			}
+		}
 		return successfullSync;
 	}
 
 	@SuppressWarnings("null")
 	private boolean syncFolder(final @NonNull File folder, final @NonNull CloudFolder cloudFolder) {
-		// TODO Use threads with executor-service to speed up encryption
-		boolean successfullSync = true;
+		AtomicBoolean successfullSync = new AtomicBoolean(true);
 		Set<String> syncedFolders = new HashSet<String>();
 		Set<String> syncedFiles = new HashSet<String>();
 
@@ -78,7 +91,7 @@ public class SyncUploader {
 			if (!localFileOrFolder.exists()) {
 				log.severe("Got non-existent file or folder to sync: " + localFileOrFolder.getAbsolutePath());
 				msgStream.println("Got non-existent file or folder to sync: " + localFileOrFolder.getAbsolutePath());
-				successfullSync = false;
+				successfullSync.set(false);
 				continue;
 			}
 			try {
@@ -96,13 +109,7 @@ public class SyncUploader {
 					syncedFiles.add(localFileOrFolder.getName());
 					if (!cloudFolder.getFiles().containsKey(localFileOrFolder.getName())) {
 						CloudFile cloudFile = cloudFolder.createFile(localFileOrFolder.getName());
-						try (OutputStream out = cloudFile.getOutputStream()) {
-							new DataOutputStream(out)
-									.writeLong(TimeUnit.MILLISECONDS.toSeconds(localFileOrFolder.lastModified()));
-							Util.writeFileToStream(localFileOrFolder, out);
-						}
-						log.finer(() -> "Created new file " + localFileOrFolder.getName() + " for "
-								+ localFileOrFolder.getAbsolutePath());
+						enqueueFileUpdate(cloudFile, localFileOrFolder, successfullSync);
 					} else {
 						boolean fileNeedsUpdate;
 						try (InputStream in = cloudFolder.getFiles().get(localFileOrFolder.getName())
@@ -110,15 +117,8 @@ public class SyncUploader {
 							fileNeedsUpdate = fileNeedsUpdate(localFileOrFolder, in);
 						}
 						if (fileNeedsUpdate) {
-							try (OutputStream out = cloudFolder.getFiles().get(localFileOrFolder.getName())
-									.getOutputStream()) {
-								new DataOutputStream(out)
-										.writeLong(TimeUnit.MILLISECONDS.toSeconds(localFileOrFolder.lastModified()));
-								out.flush();
-								Util.writeFileToStream(localFileOrFolder, out);
-							}
-							log.finer(() -> "Synced file " + localFileOrFolder.getName() + " to "
-									+ localFileOrFolder.getAbsolutePath());
+							enqueueFileUpdate(cloudFolder.getFiles().get(localFileOrFolder.getName()),
+									localFileOrFolder, successfullSync);
 						} else {
 							log.finer(() -> "File " + localFileOrFolder.getName() + " already consistent with "
 									+ localFileOrFolder.getAbsolutePath());
@@ -127,7 +127,7 @@ public class SyncUploader {
 				}
 			} catch (IOException e) {
 				log.log(Level.SEVERE, "Exception while trying to sync file " + localFileOrFolder.getAbsolutePath(), e);
-				successfullSync = false;
+				successfullSync.set(false);
 			}
 		}
 
@@ -148,7 +148,7 @@ public class SyncUploader {
 			} catch (IOException e) {
 				log.log(Level.SEVERE,
 						"Exception while trying to delete folder " + folderName + " in " + folder.getAbsolutePath(), e);
-				successfullSync = false;
+				successfullSync.set(false);
 			}
 		}
 		for (String fileName : nonSyncedFiles) {
@@ -162,10 +162,10 @@ public class SyncUploader {
 			} catch (IOException e) {
 				log.log(Level.SEVERE,
 						"Exception while trying to delete file " + fileName + " in " + folder.getAbsolutePath(), e);
-				successfullSync = false;
+				successfullSync.set(false);
 			}
 		}
-		return successfullSync;
+		return successfullSync.get();
 	}
 
 	private boolean fileNeedsUpdate(final @NonNull File localFile, final @NonNull InputStream in) throws IOException {
@@ -180,5 +180,29 @@ public class SyncUploader {
 		} else {
 			return false;
 		}
+	}
+
+	private void enqueueFileUpdate(final @NonNull CloudFile cloudFile, final @NonNull File localFileOrFolder,
+			final @NonNull AtomicBoolean successfullSync) {
+		Runnable runnable = new Runnable() {
+			@Override
+			public void run() {
+				try {
+					try (OutputStream out = cloudFile.getOutputStream()) {
+						new DataOutputStream(out)
+								.writeLong(TimeUnit.MILLISECONDS.toSeconds(localFileOrFolder.lastModified()));
+						out.flush();
+						Util.writeFileToStream(localFileOrFolder, out);
+					}
+				} catch (Throwable t) {
+					log.log(Level.SEVERE, "Exception while trying to sync file " + localFileOrFolder.getAbsolutePath(),
+							t);
+					successfullSync.set(false);
+				}
+				log.finer(() -> "Uploaded file " + localFileOrFolder.getName() + " for "
+						+ localFileOrFolder.getAbsolutePath());
+			}
+		};
+		executorService.submit(runnable);
 	}
 }
