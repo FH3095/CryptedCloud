@@ -99,6 +99,31 @@ public class TestEncryptedFiles {
 		service.finishSync(true, true);
 	}
 
+	@SuppressWarnings("null")
+	@Test
+	public void testEmptyFile() throws IOException {
+		KeyPair keyPair = new KeyPair();
+		EncryptedService service = new EncryptedService(new RawService(dstDir), Collections.singleton(keyPair),
+				Collections.singleton(keyPair.getPublicKey()));
+		File testJavaFile = new File(srcDir, "TestEmpty.txt");
+		File resultFile = new File(srcDir, "TestEmptyResult.txt");
+		testJavaFile.createNewFile();
+		assertTrue(testJavaFile.exists());
+		service.startSync(true);
+		CloudFolder rootFolder = service.getRootFolder();
+		CloudFile testCloudFile = rootFolder.createFile("TestEmpty.txt");
+		try (OutputStream out = testCloudFile.getOutputStream()) {
+			new DataOutputStream(out).writeLong(0);
+			out.flush();
+			Util.writeFileToStream(testJavaFile, out);
+		}
+		try (InputStream in = testCloudFile.getInputStream()) {
+			assertEquals(0, new DataInputStream(in).readLong());
+			Util.writeStreamToFile(in, resultFile);
+		}
+		assertTrue(CryptTestUtils.compareFiles(testJavaFile, resultFile));
+	}
+
 	@After
 	public void cleanUp() throws IOException {
 		if (srcDir.exists()) {
