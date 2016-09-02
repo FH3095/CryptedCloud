@@ -2,13 +2,13 @@ package eu._4fh.cryptedcloud.gui;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.DefaultListModel;
@@ -90,8 +90,9 @@ public class SyncGUI {
 							outputStream.println("Error while sync. Please check log!");
 						}
 					}
-				} catch (IOException e) {
-					outputStream.println("Cant sync: " + e.getMessage());
+				} catch (Throwable t) {
+					outputStream.println("Cant sync: " + t.getMessage());
+					log.log(Level.SEVERE, "Cant sync: ", t);
 				} finally {
 					syncFinished.set(true);
 				}
