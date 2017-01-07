@@ -1,65 +1,54 @@
 package eu._4fh.cryptedcloud.gui;
 
 import java.awt.event.ActionEvent;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
-import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 
 import org.abstractj.kalium.NaCl;
+import org.abstractj.kalium.keys.KeyPair;
+import org.abstractj.kalium.keys.PublicKey;
 import org.eclipse.jdt.annotation.NonNull;
 
 import eu._4fh.cryptedcloud.config.Config;
+import eu._4fh.cryptedcloud.crypt.FileDecrypter;
+import eu._4fh.cryptedcloud.crypt.FileEncrypter;
+import eu._4fh.cryptedcloud.crypt.KeyStore;
 import eu._4fh.cryptedcloud.util.LogConfigRefresh;
 import eu._4fh.cryptedcloud.util.Util;
 
 public class MainWindow extends javax.swing.JFrame {
 	private static final long serialVersionUID = -8919560872094579651L;
 	private static final Logger log = Util.getLogger();
-	private final DefaultListModel<String> syncFolderListModel;
-	private javax.swing.JButton buttonAddSyncedFolder;
-	private javax.swing.JButton buttonRemoveSyncedFolder;
-	private javax.swing.JButton buttonStartDownload;
-	private javax.swing.JButton buttonStartUpload;
-	private javax.swing.JList<String> listSyncedFolders;
+	private javax.swing.JButton buttonStartDecryption;
+	private javax.swing.JButton buttonStartEncryption;
 	private javax.swing.JMenuBar menuBarMain;
 	private javax.swing.JMenuItem menuItemManageKeys;
 	private javax.swing.JMenu menuManage;
 	private javax.swing.JPanel panelSyncButtons;
-	private javax.swing.JPanel panelSyncedFolders;
-	private javax.swing.JPanel panelSyncedFoldersButtons;
-	private javax.swing.JScrollPane scrollPaneSyncStatus;
-	private javax.swing.JScrollPane scrollPaneSyncedFolders;
-	private javax.swing.JTextPane textPaneSyncStatus;
 	private javax.swing.JMenuItem menuItemManageConfig;
 
 	public MainWindow() {
-		syncFolderListModel = new DefaultListModel<String>();
-		recreateSyncedFoldersList();
 		initComponents();
 	}
 
 	private void initComponents() {
 
-		panelSyncedFolders = new javax.swing.JPanel();
-		scrollPaneSyncedFolders = new javax.swing.JScrollPane();
-		listSyncedFolders = new javax.swing.JList<String>();
-		panelSyncedFoldersButtons = new javax.swing.JPanel();
-		buttonAddSyncedFolder = new javax.swing.JButton();
-		buttonRemoveSyncedFolder = new javax.swing.JButton();
 		panelSyncButtons = new javax.swing.JPanel();
-		buttonStartUpload = new javax.swing.JButton();
-		buttonStartDownload = new javax.swing.JButton();
-		scrollPaneSyncStatus = new javax.swing.JScrollPane();
-		textPaneSyncStatus = new javax.swing.JTextPane();
+		buttonStartEncryption = new javax.swing.JButton();
+		buttonStartDecryption = new javax.swing.JButton();
 		menuBarMain = new javax.swing.JMenuBar();
 		menuManage = new javax.swing.JMenu();
 		menuItemManageKeys = new javax.swing.JMenuItem();
@@ -68,78 +57,32 @@ public class MainWindow extends javax.swing.JFrame {
 		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 		setTitle("CryptedCloud");
 		setLocation(new java.awt.Point(20, 20));
-		setPreferredSize(new java.awt.Dimension(700, 400));
+		setPreferredSize(new java.awt.Dimension(300, 75));
 		getContentPane().setLayout(new javax.swing.BoxLayout(getContentPane(), javax.swing.BoxLayout.PAGE_AXIS));
-
-		panelSyncedFolders.setLayout(new javax.swing.BoxLayout(panelSyncedFolders, javax.swing.BoxLayout.PAGE_AXIS));
-
-		listSyncedFolders.setModel(syncFolderListModel);
-		listSyncedFolders.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		scrollPaneSyncedFolders.setViewportView(listSyncedFolders);
-
-		panelSyncedFolders.add(scrollPaneSyncedFolders);
-
-		panelSyncedFoldersButtons
-				.setLayout(new javax.swing.BoxLayout(panelSyncedFoldersButtons, javax.swing.BoxLayout.LINE_AXIS));
-
-		buttonAddSyncedFolder.setText("Add Folder");
-		buttonAddSyncedFolder.setMaximumSize(new java.awt.Dimension(120, 30));
-		buttonAddSyncedFolder.setMinimumSize(new java.awt.Dimension(120, 30));
-		buttonAddSyncedFolder.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				buttonAddSyncedFolderActionPerformed(evt);
-			}
-		});
-		panelSyncedFoldersButtons.add(buttonAddSyncedFolder);
-
-		buttonRemoveSyncedFolder.setText("Remove Folder");
-		buttonRemoveSyncedFolder.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-		buttonRemoveSyncedFolder.setMaximumSize(new java.awt.Dimension(120, 30));
-		buttonRemoveSyncedFolder.setMinimumSize(new java.awt.Dimension(120, 30));
-		buttonRemoveSyncedFolder.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				buttonRemoveSyncedFolderActionPerformed(evt);
-			}
-		});
-		panelSyncedFoldersButtons.add(buttonRemoveSyncedFolder);
-
-		panelSyncedFolders.add(panelSyncedFoldersButtons);
-
-		getContentPane().add(panelSyncedFolders);
 
 		panelSyncButtons.setLayout(new javax.swing.BoxLayout(panelSyncButtons, javax.swing.BoxLayout.LINE_AXIS));
 
-		buttonStartUpload.setText("Start Upload");
-		buttonStartUpload.setMaximumSize(new java.awt.Dimension(120, 30));
-		buttonStartUpload.setMinimumSize(new java.awt.Dimension(120, 30));
-		buttonStartUpload.addActionListener(new java.awt.event.ActionListener() {
+		buttonStartEncryption.setText("Start Encryption");
+		buttonStartEncryption.setMaximumSize(new java.awt.Dimension(120, 30));
+		buttonStartEncryption.setMinimumSize(new java.awt.Dimension(120, 30));
+		buttonStartEncryption.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				buttonStartUploadActionPerformed(evt);
+				buttonStartEncryptionActionPerformed(evt);
 			}
 		});
-		panelSyncButtons.add(buttonStartUpload);
+		panelSyncButtons.add(buttonStartEncryption);
 
-		buttonStartDownload.setText("Start Download");
-		buttonStartDownload.setMaximumSize(new java.awt.Dimension(120, 30));
-		buttonStartDownload.setMinimumSize(new java.awt.Dimension(120, 30));
-		buttonStartDownload.addActionListener(new java.awt.event.ActionListener() {
+		buttonStartDecryption.setText("Start Decryption");
+		buttonStartDecryption.setMaximumSize(new java.awt.Dimension(120, 30));
+		buttonStartDecryption.setMinimumSize(new java.awt.Dimension(120, 30));
+		buttonStartDecryption.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				buttonStartDownloadActionPerformed(evt);
+				buttonStartDecryptionActionPerformed(evt);
 			}
 		});
-		panelSyncButtons.add(buttonStartDownload);
+		panelSyncButtons.add(buttonStartDecryption);
 
 		getContentPane().add(panelSyncButtons);
-
-		scrollPaneSyncStatus.setPreferredSize(new java.awt.Dimension(33, 80));
-
-		textPaneSyncStatus.setEditable(false);
-		textPaneSyncStatus.setText("");
-		textPaneSyncStatus.setCursor(new java.awt.Cursor(java.awt.Cursor.TEXT_CURSOR));
-		textPaneSyncStatus.setMinimumSize(new java.awt.Dimension(28, 80));
-		scrollPaneSyncStatus.setViewportView(textPaneSyncStatus);
-
-		getContentPane().add(scrollPaneSyncStatus);
 
 		menuManage.setText("Manage");
 
@@ -165,68 +108,115 @@ public class MainWindow extends javax.swing.JFrame {
 		pack();
 	}
 
-	private void buttonRemoveSyncedFolderActionPerformed(ActionEvent evt) {
-		int selectedElement = listSyncedFolders.getSelectedIndex();
-		if (selectedElement > -1 && selectedElement < syncFolderListModel.size()) {
-			List<String> syncedFolders = new LinkedList<String>(Config.getInstance().getSyncedFolders());
-			syncedFolders.remove(syncFolderListModel.get(selectedElement));
-			writeSyncedFoldersToConfig(syncedFolders);
-			recreateSyncedFoldersList();
+	private boolean checkSourceAndDestFile(final @NonNull File srcFile, final @NonNull File dstFile) {
+		if (!srcFile.exists() || !srcFile.canRead()) {
+			JOptionPane.showMessageDialog(this, "Cant read input file: " + srcFile.getAbsolutePath(), "ERROR",
+					JOptionPane.ERROR_MESSAGE);
+			return false;
 		}
+		if (dstFile.exists() && !dstFile.canWrite()) {
+			JOptionPane.showMessageDialog(this, "Cant write output file: " + dstFile.getAbsolutePath(), "ERROR",
+					JOptionPane.ERROR_MESSAGE);
+			return false;
+		}
+		if (dstFile.exists()) {
+			int answer = JOptionPane.showConfirmDialog(this,
+					"Destination file " + dstFile.getAbsolutePath() + " already exists. Overwrite?", "WARNING",
+					JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+			if (answer != JOptionPane.YES_OPTION) {
+				return false;
+			}
+			if (!dstFile.delete()) {
+				JOptionPane.showMessageDialog(null,
+						"Cant delete existing destination file " + dstFile.getAbsolutePath(), "ERROR",
+						JOptionPane.ERROR_MESSAGE);
+				return false;
+			}
+		}
+		return true;
 	}
 
-	private void buttonAddSyncedFolderActionPerformed(ActionEvent evt) {
+	private void buttonStartEncryptionActionPerformed(ActionEvent evt) {
 		final JFileChooser fc = new JFileChooser();
-		fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-
-		if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+		fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
 			return;
 		}
-		File file = fc.getSelectedFile();
+		final @NonNull File srcFile = Util.checkNonNull(fc.getSelectedFile());
+		final @NonNull File dstFile = new File(srcFile.getAbsolutePath() + ".enc");
 
-		List<String> syncedFolders = new LinkedList<String>(Config.getInstance().getSyncedFolders());
-		syncedFolders.add(file.getAbsolutePath());
-		writeSyncedFoldersToConfig(syncedFolders);
-		recreateSyncedFoldersList();
-	}
-
-	private void writeSyncedFoldersToConfig(final @NonNull List<String> newSyncedFolders) {
-		Config.WritableConfig newConfig = Config.getInstance().getWritableConfig();
-		newConfig.getSyncedFolders().clear();
-		newConfig.getSyncedFolders().addAll(newSyncedFolders);
-		try {
-			Config.writeAndReloadConfig(newConfig);
-		} catch (IOException e) {
-			log.log(Level.SEVERE, "Cant write new config to disk: ", e);
-			JOptionPane.showMessageDialog(this, "Can't write new config to disk: " + e.getMessage(), "ERROR",
-					JOptionPane.ERROR_MESSAGE);
+		if (!checkSourceAndDestFile(srcFile, dstFile)) {
+			return;
 		}
-	}
 
-	private void recreateSyncedFoldersList() {
-		syncFolderListModel.clear();
-		for (String syncFolder : Config.getInstance().getSyncedFolders()) {
-			syncFolderListModel.addElement(syncFolder);
-		}
-	}
+		final @NonNull List<PublicKey> tmpList = new LinkedList<PublicKey>(
+				KeyStore.getInstance().getPublicKeys().values());
+		KeyStore.getInstance().getPrivateKeys().values()
+				.forEach((KeyPair keyPair) -> tmpList.add(keyPair.getPublicKey()));
+		final @NonNull List<PublicKey> publicKeys = Util.checkNonNull(Collections.unmodifiableList(tmpList));
 
-	private void buttonStartUploadActionPerformed(ActionEvent evt) {
-		new Thread() {
+		Thread t = new Thread() {
 			@Override
 			public void run() {
-				new SyncGUI(Util.checkNonNull(syncFolderListModel), Util.checkNonNull(textPaneSyncStatus)).doSync(true);
+				try {
+					try (final FileEncrypter fileEncrypter = new FileEncrypter(
+							new BufferedOutputStream(new FileOutputStream(dstFile)), publicKeys)) {
+						Util.writeFileToStream(srcFile, fileEncrypter);
+					}
+				} catch (Throwable t) {
+					JOptionPane.showMessageDialog(null, "Error while encrypting file: " + t.getLocalizedMessage(),
+							"ERROR", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				JOptionPane.showMessageDialog(null,
+						"Encrypted \"" + srcFile.getAbsolutePath() + "\" to \"" + dstFile.getAbsolutePath() + "\".",
+						"SUCCESS", JOptionPane.INFORMATION_MESSAGE);
 			}
-		}.start();
+		};
+		t.start();
 	}
 
-	private void buttonStartDownloadActionPerformed(ActionEvent evt) {
-		new Thread() {
+	private void buttonStartDecryptionActionPerformed(ActionEvent evt) {
+		final JFileChooser fc = new JFileChooser();
+		fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
+			return;
+		}
+		final @NonNull File srcFile = Util.checkNonNull(fc.getSelectedFile());
+		String dstFilePath = srcFile.getAbsolutePath();
+		if (dstFilePath.endsWith(".enc")) {
+			dstFilePath = dstFilePath.substring(0, dstFilePath.length() - 4);
+		} else {
+			dstFilePath = dstFilePath + ".dec";
+		}
+		final @NonNull File dstFile = new File(dstFilePath);
+
+		if (!checkSourceAndDestFile(srcFile, dstFile)) {
+			return;
+		}
+
+		final @NonNull List<KeyPair> privateKeys = Util.checkNonNull(Collections
+				.unmodifiableList(new LinkedList<KeyPair>(KeyStore.getInstance().getPrivateKeys().values())));
+
+		Thread t = new Thread() {
 			@Override
 			public void run() {
-				new SyncGUI(Util.checkNonNull(syncFolderListModel), Util.checkNonNull(textPaneSyncStatus))
-						.doSync(false);
+				try {
+					try (final FileDecrypter fileDecrypter = new FileDecrypter(
+							new BufferedInputStream(new FileInputStream(srcFile)), privateKeys)) {
+						Util.writeStreamToFile(fileDecrypter, dstFile);
+					}
+				} catch (Throwable t) {
+					JOptionPane.showMessageDialog(null, "Error while decrypting file: " + t.getLocalizedMessage(),
+							"ERROR", JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				JOptionPane.showMessageDialog(null,
+						"Decrypted \"" + srcFile.getAbsolutePath() + "\" to \"" + dstFile.getAbsolutePath() + "\".",
+						"SUCCESS", JOptionPane.INFORMATION_MESSAGE);
 			}
-		}.start();
+		};
+		t.start();
 	}
 
 	private void menuItemManageConfigActionPerformed(ActionEvent evt) {

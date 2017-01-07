@@ -9,9 +9,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.logging.Logger;
 
 import org.eclipse.jdt.annotation.NonNull;
@@ -37,23 +34,6 @@ public class Config {
 		public void setTempDir(final @NonNull File tempDir) {
 			this.tempDir = tempDir.getAbsolutePath();
 		}
-
-		public void setAllowWeakNameEncryptionKey(final boolean allowWeakNameEncryptionKey) {
-			this.allowWeakNameEncryptionKey = allowWeakNameEncryptionKey;
-		}
-
-		public List<String> getSyncedFolders() {
-			return syncedFolders;
-		}
-
-		@SuppressWarnings("null")
-		public void setTargetDir(final @NonNull File targetDir) {
-			this.targetDir = targetDir.getAbsolutePath();
-		}
-
-		public void setNumThreads(final int numThreads) {
-			this.numThreads = numThreads;
-		}
 	}
 
 	private static final Logger log = Util.getLogger();
@@ -62,29 +42,17 @@ public class Config {
 	protected int fileChunkSize;
 	protected @NonNull String configDir;
 	protected @NonNull String tempDir;
-	protected boolean allowWeakNameEncryptionKey;
-	protected @NonNull List<String> syncedFolders;
-	protected @NonNull String targetDir;
-	protected int numThreads;
 
 	private Config() {
 		fileChunkSize = 100 * 1024 * 1024;
 		configDir = System.getProperty("user.home") + "/Desktop/CryptedCloud";
 		tempDir = Util.checkNonNull(System.getProperty("java.io.tmpdir"));
-		allowWeakNameEncryptionKey = false;
-		syncedFolders = new LinkedList<String>();
-		targetDir = System.getProperty("user.home") + "/Desktop/CryptedCloud";
-		numThreads = 10;
 	}
 
 	private Config(final @NonNull Config orig) {
 		this.fileChunkSize = orig.fileChunkSize;
 		this.configDir = orig.configDir;
 		this.tempDir = orig.tempDir;
-		this.allowWeakNameEncryptionKey = orig.allowWeakNameEncryptionKey;
-		this.syncedFolders = new LinkedList<String>(orig.syncedFolders);
-		this.targetDir = orig.targetDir;
-		this.numThreads = orig.numThreads;
 	}
 
 	static public void readConfig() throws IOException {
@@ -127,14 +95,6 @@ public class Config {
 		fileChunkSize = in.readInt();
 		configDir = in.readUTF();
 		tempDir = in.readUTF();
-		allowWeakNameEncryptionKey = in.readBoolean();
-		syncedFolders.clear();
-		int numFolders = in.readInt();
-		for (int i = 0; i < numFolders; ++i) {
-			syncedFolders.add(in.readUTF());
-		}
-		targetDir = in.readUTF();
-		numThreads = in.readInt();
 	}
 
 	static public void writeAndReloadConfig(final @NonNull WritableConfig newConfig) throws IOException {
@@ -146,13 +106,6 @@ public class Config {
 				out.writeInt(newConfig.fileChunkSize);
 				out.writeUTF(newConfig.configDir);
 				out.writeUTF(newConfig.tempDir);
-				out.writeBoolean(newConfig.allowWeakNameEncryptionKey);
-				out.writeInt(newConfig.syncedFolders.size());
-				for (String folder : newConfig.syncedFolders) {
-					out.writeUTF(folder);
-				}
-				out.writeUTF(newConfig.targetDir);
-				out.writeInt(newConfig.numThreads);
 			}
 			instance = null;
 			readConfig();
@@ -182,21 +135,5 @@ public class Config {
 
 	public @NonNull File getTempDir() {
 		return new File(tempDir);
-	}
-
-	public boolean getAllowWeakNameEncryptionKey() {
-		return allowWeakNameEncryptionKey;
-	}
-
-	public List<String> getSyncedFolders() {
-		return Collections.unmodifiableList(syncedFolders);
-	}
-
-	public @NonNull File getTargetDir() {
-		return new File(targetDir);
-	}
-
-	public int getNumThreads() {
-		return numThreads;
 	}
 }

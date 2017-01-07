@@ -36,12 +36,6 @@ public class ConfigWindow extends javax.swing.JFrame {
 		stringConfigDir = new javax.swing.JTextField();
 		labelTempDir = new javax.swing.JLabel();
 		stringTempDir = new javax.swing.JTextField();
-		labelAllowWeakNameKeys = new javax.swing.JLabel();
-		checkboxAllowWeakNameKeys = new javax.swing.JCheckBox();
-		labelTargetDir = new javax.swing.JLabel();
-		stringTargetDir = new javax.swing.JTextField();
-		labelNumThreads = new javax.swing.JLabel();
-		formattedNumThreads = new javax.swing.JFormattedTextField();
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 		setTitle("Config");
@@ -87,45 +81,11 @@ public class ConfigWindow extends javax.swing.JFrame {
 		});
 		getContentPane().add(stringTempDir);
 
-		labelAllowWeakNameKeys.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 5));
-		getContentPane().add(labelAllowWeakNameKeys);
-
-		checkboxAllowWeakNameKeys.setText("Allow Weak Name Encryption Keys");
-		getContentPane().add(checkboxAllowWeakNameKeys);
-
-		labelTargetDir.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-		labelTargetDir.setLabelFor(stringTargetDir);
-		labelTargetDir.setText("Target Directory");
-		labelTargetDir.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 5));
-		getContentPane().add(labelTargetDir);
-
-		stringTargetDir.addMouseListener(new java.awt.event.MouseAdapter() {
-			public void mouseClicked(java.awt.event.MouseEvent evt) {
-				stringFieldDirectoryChooser(evt);
-			}
-		});
-		getContentPane().add(stringTargetDir);
-
-		labelNumThreads.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-		labelNumThreads.setText("Encryption Threads");
-		labelNumThreads.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 5, 1, 5));
-		getContentPane().add(labelNumThreads);
-
-		NumberFormatter formattedNumThreadsFormatter = new NumberFormatter(NumberFormat.getIntegerInstance());
-		formattedNumThreadsFormatter.setMinimum(new Integer(1));
-		formattedNumThreadsFormatter.setMaximum(65536);
-		formattedNumThreadsFormatter.setAllowsInvalid(false);
-		formattedNumThreads.setFormatterFactory(new DefaultFormatterFactory(formattedNumThreadsFormatter));
-		getContentPane().add(formattedNumThreads);
-
 		// Init Values from Config
 		Config config = Config.getInstance();
 		formattedFileChunkSize.setText(Integer.toString(config.getFileChunkSize()));
 		stringConfigDir.setText(config.getConfigDir().getAbsolutePath());
 		stringTempDir.setText(config.getTempDir().getAbsolutePath());
-		checkboxAllowWeakNameKeys.setSelected(config.getAllowWeakNameEncryptionKey());
-		stringTargetDir.setText(config.getTargetDir().getAbsolutePath());
-		formattedNumThreads.setText(Integer.toString(config.getNumThreads()));
 
 		pack();
 	}
@@ -156,10 +116,6 @@ public class ConfigWindow extends javax.swing.JFrame {
 							NumberFormat.getIntegerInstance().parse(formattedFileChunkSize.getText()).intValue());
 					config.setConfigDir(new File(stringConfigDir.getText()));
 					config.setTempDir(new File(stringTempDir.getText()));
-					config.setAllowWeakNameEncryptionKey(checkboxAllowWeakNameKeys.isSelected());
-					config.setTargetDir(new File(stringTargetDir.getText()));
-					config.setNumThreads(
-							NumberFormat.getIntegerInstance().parse(formattedNumThreads.getText()).intValue());
 					Config.writeAndReloadConfig(config);
 				} catch (IOException | ParseException e) {
 					log.log(Level.SEVERE, "Cant write config: ", e);
@@ -194,16 +150,10 @@ public class ConfigWindow extends javax.swing.JFrame {
 		}
 	}
 
-	private javax.swing.JCheckBox checkboxAllowWeakNameKeys;
 	private javax.swing.JFormattedTextField formattedFileChunkSize;
-	private javax.swing.JFormattedTextField formattedNumThreads;
-	private javax.swing.JLabel labelAllowWeakNameKeys;
 	private javax.swing.JLabel labelConfigDir;
 	private javax.swing.JLabel labelFileChunkSize;
-	private javax.swing.JLabel labelTargetDir;
 	private javax.swing.JLabel labelTempDir;
-	private javax.swing.JLabel labelNumThreads;
 	private javax.swing.JTextField stringConfigDir;
 	private javax.swing.JTextField stringTempDir;
-	private javax.swing.JTextField stringTargetDir;
 }

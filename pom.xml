@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>eu._4fh</groupId>
 	<artifactId>CryptedCloud</artifactId>
-	<version>0.0.2-SNAPSHOT</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>CryptedCloud</name>
 	<dependencies>
 		<dependency>
@@ -16,11 +16,6 @@
 			<artifactId>junit</artifactId>
 			<version>4.12</version>
 			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.cryptomator</groupId>
-			<artifactId>siv-mode</artifactId>
-			<version>1.0.7</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jdt</groupId>
