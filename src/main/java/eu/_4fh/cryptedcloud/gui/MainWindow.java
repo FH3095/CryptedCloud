@@ -139,6 +139,7 @@ public class MainWindow extends javax.swing.JFrame {
 	private void buttonStartEncryptionActionPerformed(ActionEvent evt) {
 		final JFileChooser fc = new JFileChooser();
 		fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		fc.setCurrentDirectory(new File(System.getProperty("user.dir")));
 		if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
 			return;
 		}
@@ -179,6 +180,7 @@ public class MainWindow extends javax.swing.JFrame {
 	private void buttonStartDecryptionActionPerformed(ActionEvent evt) {
 		final JFileChooser fc = new JFileChooser();
 		fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		fc.setCurrentDirectory(new File(System.getProperty("user.dir")));
 		if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
 			return;
 		}
