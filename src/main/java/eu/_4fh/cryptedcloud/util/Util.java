@@ -1,5 +1,6 @@
 package eu._4fh.cryptedcloud.util;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,13 +13,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.abstractj.kalium.keys.KeyPair;
+import org.abstractj.kalium.keys.PublicKey;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import eu._4fh.cryptedcloud.config.Config;
+import eu._4fh.cryptedcloud.crypt.FileDecrypter;
+import eu._4fh.cryptedcloud.crypt.FileEncrypter;
+import eu._4fh.cryptedcloud.crypt.KeyStore;
 
 public class Util {
 	private static final Logger log = Util.getLogger();
@@ -223,5 +232,68 @@ public class Util {
 			throw new NullPointerException("Obj is null!");
 		}
 		return obj;
+	}
+
+	public static interface FileEncryptionCallback {
+		public void error(Throwable t);
+
+		public void finished();
+	}
+
+	public static Thread createDecryptFileThread(final @NonNull File srcFile, final @NonNull File dstFile,
+			final @Nullable FileEncryptionCallback callback) {
+		final @NonNull List<KeyPair> privateKeys = Util.checkNonNull(Collections
+				.unmodifiableList(new LinkedList<KeyPair>(KeyStore.getInstance().getPrivateKeys().values())));
+
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				try {
+					try (final FileDecrypter fileDecrypter = new FileDecrypter(
+							new BufferedInputStream(new FileInputStream(srcFile)), privateKeys)) {
+						Util.writeStreamToFile(fileDecrypter, dstFile);
+					}
+				} catch (Throwable t) {
+					if (callback != null) {
+						callback.error(t);
+					}
+					return;
+				}
+				if (callback != null) {
+					callback.finished();
+				}
+			}
+		};
+		return t;
+	}
+
+	public static Thread createEncryptFileThread(final @NonNull File srcFile, final @NonNull File dstFile,
+			final @Nullable FileEncryptionCallback callback) {
+		final @NonNull List<PublicKey> tmpList = new LinkedList<PublicKey>(
+				KeyStore.getInstance().getPublicKeys().values());
+		KeyStore.getInstance().getPrivateKeys().values()
+				.forEach((KeyPair keyPair) -> tmpList.add(keyPair.getPublicKey()));
+		final @NonNull List<PublicKey> publicKeys = Util.checkNonNull(Collections.unmodifiableList(tmpList));
+
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				try {
+					try (final FileEncrypter fileEncrypter = new FileEncrypter(
+							new BufferedOutputStream(new FileOutputStream(dstFile)), publicKeys)) {
+						Util.writeFileToStream(srcFile, fileEncrypter);
+					}
+				} catch (Throwable t) {
+					if (callback != null) {
+						callback.error(t);
+					}
+					return;
+				}
+				if (callback != null) {
+					callback.finished();
+				}
+			}
+		};
+		return t;
 	}
 }

@@ -25,14 +25,12 @@ public class Config {
 			this.fileChunkSize = fileChunkSize;
 		}
 
-		@SuppressWarnings("null")
 		public void setConfigDir(final @NonNull File configDir) {
-			this.configDir = configDir.getAbsolutePath();
+			this.configDir = Util.checkNonNull(configDir.getAbsolutePath());
 		}
 
-		@SuppressWarnings("null")
 		public void setTempDir(final @NonNull File tempDir) {
-			this.tempDir = tempDir.getAbsolutePath();
+			this.tempDir = Util.checkNonNull(tempDir.getAbsolutePath());
 		}
 	}
 

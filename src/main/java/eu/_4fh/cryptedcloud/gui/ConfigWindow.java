@@ -109,7 +109,7 @@ public class ConfigWindow extends javax.swing.JFrame {
 	private class OnCloseWriteConfigWindowListener implements WindowListener {
 		@Override
 		public void windowClosing(WindowEvent evt) {
-			synchronized (OnCloseWriteConfigWindowListener.class) {
+			synchronized (Config.WritableConfig.class) {
 				try {
 					Config.WritableConfig config = Config.getInstance().getWritableConfig();
 					config.setFileChunkSize(

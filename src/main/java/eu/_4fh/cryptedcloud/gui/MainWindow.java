@@ -1,37 +1,18 @@
 package eu._4fh.cryptedcloud.gui;
 
 import java.awt.event.ActionEvent;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-import org.abstractj.kalium.NaCl;
-import org.abstractj.kalium.keys.KeyPair;
-import org.abstractj.kalium.keys.PublicKey;
 import org.eclipse.jdt.annotation.NonNull;
 
-import eu._4fh.cryptedcloud.config.Config;
-import eu._4fh.cryptedcloud.crypt.FileDecrypter;
-import eu._4fh.cryptedcloud.crypt.FileEncrypter;
-import eu._4fh.cryptedcloud.crypt.KeyStore;
-import eu._4fh.cryptedcloud.util.LogConfigRefresh;
 import eu._4fh.cryptedcloud.util.Util;
 
 public class MainWindow extends javax.swing.JFrame {
 	private static final long serialVersionUID = -8919560872094579651L;
-	private static final Logger log = Util.getLogger();
 	private javax.swing.JButton buttonStartDecryption;
 	private javax.swing.JButton buttonStartEncryption;
 	private javax.swing.JMenuBar menuBarMain;
@@ -150,31 +131,22 @@ public class MainWindow extends javax.swing.JFrame {
 			return;
 		}
 
-		final @NonNull List<PublicKey> tmpList = new LinkedList<PublicKey>(
-				KeyStore.getInstance().getPublicKeys().values());
-		KeyStore.getInstance().getPrivateKeys().values()
-				.forEach((KeyPair keyPair) -> tmpList.add(keyPair.getPublicKey()));
-		final @NonNull List<PublicKey> publicKeys = Util.checkNonNull(Collections.unmodifiableList(tmpList));
-
-		Thread t = new Thread() {
+		Util.FileEncryptionCallback callback = new Util.FileEncryptionCallback() {
 			@Override
-			public void run() {
-				try {
-					try (final FileEncrypter fileEncrypter = new FileEncrypter(
-							new BufferedOutputStream(new FileOutputStream(dstFile)), publicKeys)) {
-						Util.writeFileToStream(srcFile, fileEncrypter);
-					}
-				} catch (Throwable t) {
-					JOptionPane.showMessageDialog(null, "Error while encrypting file: " + t.getLocalizedMessage(),
-							"ERROR", JOptionPane.ERROR_MESSAGE);
-					return;
-				}
+			public void finished() {
 				JOptionPane.showMessageDialog(null,
 						"Encrypted \"" + srcFile.getAbsolutePath() + "\" to \"" + dstFile.getAbsolutePath() + "\".",
 						"SUCCESS", JOptionPane.INFORMATION_MESSAGE);
 			}
+
+			@Override
+			public void error(Throwable t) {
+				JOptionPane.showMessageDialog(null, "Error while encrypting file: " + t.getLocalizedMessage(), "ERROR",
+						JOptionPane.ERROR_MESSAGE);
+			}
 		};
-		t.start();
+
+		Util.createEncryptFileThread(srcFile, dstFile, callback).start();
 	}
 
 	private void buttonStartDecryptionActionPerformed(ActionEvent evt) {
@@ -197,28 +169,22 @@ public class MainWindow extends javax.swing.JFrame {
 			return;
 		}
 
-		final @NonNull List<KeyPair> privateKeys = Util.checkNonNull(Collections
-				.unmodifiableList(new LinkedList<KeyPair>(KeyStore.getInstance().getPrivateKeys().values())));
-
-		Thread t = new Thread() {
+		Util.FileEncryptionCallback callback = new Util.FileEncryptionCallback() {
 			@Override
-			public void run() {
-				try {
-					try (final FileDecrypter fileDecrypter = new FileDecrypter(
-							new BufferedInputStream(new FileInputStream(srcFile)), privateKeys)) {
-						Util.writeStreamToFile(fileDecrypter, dstFile);
-					}
-				} catch (Throwable t) {
-					JOptionPane.showMessageDialog(null, "Error while decrypting file: " + t.getLocalizedMessage(),
-							"ERROR", JOptionPane.ERROR_MESSAGE);
-					return;
-				}
+			public void finished() {
 				JOptionPane.showMessageDialog(null,
 						"Decrypted \"" + srcFile.getAbsolutePath() + "\" to \"" + dstFile.getAbsolutePath() + "\".",
 						"SUCCESS", JOptionPane.INFORMATION_MESSAGE);
 			}
+
+			@Override
+			public void error(Throwable t) {
+				JOptionPane.showMessageDialog(null, "Error while decrypting file: " + t.getLocalizedMessage(), "ERROR",
+						JOptionPane.ERROR_MESSAGE);
+			}
 		};
-		t.start();
+
+		Util.createDecryptFileThread(srcFile, dstFile, callback).start();
 	}
 
 	private void menuItemManageConfigActionPerformed(ActionEvent evt) {
@@ -235,51 +201,6 @@ public class MainWindow extends javax.swing.JFrame {
 			@Override
 			public void run() {
 				new ManageKeysWindow().setVisible(true);
-			}
-		});
-	}
-
-	public static void main(String args[]) {
-		/* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-		 * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-		 */
-		try {
-			for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-				if ("Windows".equals(info.getName())) {
-					javax.swing.UIManager.setLookAndFeel(info.getClassName());
-					break;
-				}
-			}
-		} catch (ClassNotFoundException ex) {
-			java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null,
-					ex);
-		} catch (InstantiationException ex) {
-			java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null,
-					ex);
-		} catch (IllegalAccessException ex) {
-			java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null,
-					ex);
-		} catch (javax.swing.UnsupportedLookAndFeelException ex) {
-			java.util.logging.Logger.getLogger(MainWindow.class.getName()).log(java.util.logging.Level.SEVERE, null,
-					ex);
-		}
-		new LogConfigRefresh();
-		try {
-			Config.readConfig();
-		} catch (IOException e) {
-			log.log(Level.SEVERE, "Cant read Config: ", e);
-			JOptionPane.showMessageDialog(null, "Can't read config: " + e.getMessage(), "ERROR",
-					JOptionPane.ERROR_MESSAGE);
-			System.exit(1);
-		}
-		NaCl.init();
-		log.info("System initialized");
-
-		/* Create and display the form */
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				new MainWindow().setVisible(true);
 			}
 		});
 	}
